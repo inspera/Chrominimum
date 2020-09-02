@@ -132,15 +132,18 @@ namespace Chrominimum
 
 		private void InitializeWindow()
 		{
-			if (appSettings.ShowMaximized)
+			if (appSettings.ShowMaximized && mainInstance)
 			{
 				WindowState = FormWindowState.Maximized;
 			}
-			else
-			{
-				Height = Screen.PrimaryScreen.WorkingArea.Height;
-				Location = new Point(Screen.PrimaryScreen.WorkingArea.Width / 2, Screen.PrimaryScreen.WorkingArea.Top);
-				Width = Screen.PrimaryScreen.WorkingArea.Width / 2;
+			Height = Screen.PrimaryScreen.WorkingArea.Height;
+			Width = (int)(Screen.PrimaryScreen.WorkingArea.Width * (mainInstance ? appSettings.MainWindowWidth : appSettings.PopupWindowWidth) / 100.0);
+
+			var side = mainInstance ? appSettings.MainWindowSide : appSettings.PopupWindowSide;
+			Location = new Point(Screen.PrimaryScreen.WorkingArea.Left, Screen.PrimaryScreen.WorkingArea.Top);
+			if (side == "R")
+            {
+				Location = new Point(Screen.PrimaryScreen.WorkingArea.Right - Width);
 			}
 		}
 

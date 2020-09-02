@@ -8,6 +8,7 @@
 
 using System;
 using System.IO;
+using System.Windows.Forms;
 using System.Configuration;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -23,7 +24,7 @@ namespace Chrominimum
 		[Option("disable-reload", Default=false, Required = false)]
 		public bool DisableReload { get; set; }
 
-		[Option("maximized", Default=false, Required = false)]
+		[Option("maximized", Default=true, Required = false)]
 		public bool ShowMaximized { get; set; }
 
 		[Option("logdir", Required = false)]
@@ -31,6 +32,9 @@ namespace Chrominimum
 
 		[Option("quitPasswordHash", Required = false)]
 		public string QuitPasswordHash { get; set; }
+
+		[Option("layout", Default="L80:R50", Required = false)]
+		public string Layout { get; set; }
 
 		[Value(0)]
 		public string ProgramName { get; set; }
@@ -49,6 +53,11 @@ namespace Chrominimum
 		internal string LogDir { get; set; }
 		internal DateTime StartTime { get; set; }
 		internal string QuitPasswordHash { get; set; }
+		internal int MainWindowWidth { get; set; }
+		internal string MainWindowSide { get; set; }
+		internal int PopupWindowWidth { get; set; }
+		internal string PopupWindowSide { get; set; }
+
 
 		internal const string AppName = "SEBLight";
 
@@ -71,9 +80,31 @@ namespace Chrominimum
 							? options.LogDir
 							: Path.Combine(appDataLocalFolder, "Logs");
 						QuitPasswordHash = options.QuitPasswordHash;
+						ParseLayout(options.Layout);
 					});
 
 			var args = Environment.GetCommandLineArgs();
+		}
+
+		private void ParseLayout(string rawValue)
+        {
+			string[] blocks = rawValue.Split(':');
+			if (blocks.Length != 2)
+            {
+				throw new ArgumentException("wrong layout: " + rawValue);
+			}
+			ParseOneLayoutBlock(blocks[0], value => MainWindowSide = value, value => MainWindowWidth = value);
+			ParseOneLayoutBlock(blocks[1], value => PopupWindowSide = value, value => PopupWindowWidth = value);
+		}
+
+		private void ParseOneLayoutBlock(string rawValue, Action<string> setSide, Action<int> setWidth)
+        {
+			if(rawValue[0] != 'L' && rawValue[0] != 'R')
+            {
+				throw new ArgumentException("wrong layout: " + rawValue);
+			}
+			setSide(rawValue[0].ToString());
+			setWidth(int.Parse(rawValue.Substring(1)));
 		}
 
 		private bool IsValidStartUrl(string value)
