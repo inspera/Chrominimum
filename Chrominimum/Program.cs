@@ -29,6 +29,8 @@ using SafeExamBrowser.SystemComponents.Keyboard;
 using SafeExamBrowser.SystemComponents.PowerSupply;
 using SafeExamBrowser.SystemComponents.WirelessNetwork;
 
+using Chrominimum.Events;
+
 
 namespace Chrominimum
 {
@@ -92,11 +94,19 @@ namespace Chrominimum
 			var instanceLogger = new ModuleLogger(logger, nameof(MainWindow));
 			var startUrl = url ?? appSettings.StartUrl;
 			var instance = new MainWindow(appSettings, id, isMainInstance, startUrl, instanceLogger, text);
+			instance.PopupRequested += Instance_PopupRequested;
 
 			instance.Show();
 			instances.Add(instance);
 			logger.Info($"Created browser instance {instance.Id}.");
 		}
+
+		private void Instance_PopupRequested(PopupRequestedEventArgs args)
+		{
+			logger.Info($"Received request to create new instance for '{args.Url}'...");
+			CreateNewInstance(args.Url);
+		}
+
 
 		private void ClosingSeqence()
 		{

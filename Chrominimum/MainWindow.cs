@@ -12,9 +12,11 @@ using System.Windows.Forms;
 using CefSharp;
 using CefSharp.WinForms;
 using Chrominimum.Handlers;
+using Chrominimum.Events;
 
 using SafeExamBrowser.I18n.Contracts;
 using SafeExamBrowser.Logging.Contracts;
+using SafeExamBrowser.Settings.Browser;
 using ResourceHandler = Chrominimum.Handlers.ResourceHandler;
 using BrowserSettings = SafeExamBrowser.Settings.Browser.BrowserSettings;
 
@@ -31,6 +33,8 @@ namespace Chrominimum
 
 		private string startUrl;
 		private bool mainInstance;
+
+		internal event PopupRequestedEventHandler PopupRequested;
 
 		internal MainWindow(AppSettings appSettings, int id, bool mainInstance, string startUrl, IModuleLogger logger, IText text)
 		{
@@ -75,15 +79,17 @@ namespace Chrominimum
             var requestLogger = logger.CloneFor($"{nameof(RequestHandler)} #{Id}");
             var resourceHandler = new ResourceHandler(settings, logger, text);
             var requestHandler = new RequestHandler(requestLogger, settings, resourceHandler, text);
+			var lifeSpanHandler = new LifeSpanHandler();
+			lifeSpanHandler.PopupRequested += LifeSpanHandler_PopupRequested;
 
-            browser = new ChromiumWebBrowser(startUrl)
+			browser = new ChromiumWebBrowser(startUrl)
 			{
 				Dock = DockStyle.Fill
 			};
 
 			browser.DisplayHandler = new DisplayHandler(this);
 			browser.KeyboardHandler = new KeyboardHandler();
-			browser.LifeSpanHandler = new LifeSpanHandler();
+			browser.LifeSpanHandler = lifeSpanHandler;
 			browser.LoadError += Browser_LoadError;
 			browser.MenuHandler = new ContextMenuHandler();
 			browser.TitleChanged += Browser_TitleChanged;
@@ -155,5 +161,34 @@ namespace Chrominimum
 				e.Frame.LoadHtml($"<html><body>Failed to load '{e.FailedUrl}'!<br />{e.ErrorText} ({e.ErrorCode})</body></html>");
 			}
 		}
+
+		private void LifeSpanHandler_PopupRequested(PopupRequestedEventArgs args)
+		{
+			var validCurrentUri = Uri.TryCreate(browser.Address, UriKind.Absolute, out var currentUri);
+			var validNewUri = Uri.TryCreate(args.Url, UriKind.Absolute, out var newUri);
+			var sameHost = validCurrentUri && validNewUri && string.Equals(currentUri.Host, newUri.Host, StringComparison.OrdinalIgnoreCase);
+
+			switch (settings.PopupPolicy)
+			{
+				case PopupPolicy.Allow:
+				case PopupPolicy.AllowSameHost when sameHost:
+					logger.Debug($"Forwarding request to open new window for '{args.Url}'...");
+					PopupRequested?.Invoke(args);
+					break;
+				case PopupPolicy.AllowSameWindow:
+				case PopupPolicy.AllowSameHostAndWindow when sameHost:
+					logger.Info($"Discarding request to open new window and loading '{args.Url}' directly...");
+					browser.Load(args.Url);
+					break;
+				case PopupPolicy.AllowSameHost when !sameHost:
+				case PopupPolicy.AllowSameHostAndWindow when !sameHost:
+					logger.Info($"Blocked request to open new window for '{args.Url}' as it targets a different host.");
+					break;
+				default:
+					logger.Info($"Blocked request to open new window for '{args.Url}'.");
+					break;
+			}
+		}
+
 	}
 }

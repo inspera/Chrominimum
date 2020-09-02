@@ -7,11 +7,13 @@
  */
 
 using CefSharp;
+using Chrominimum.Events;
 
 namespace Chrominimum.Handlers
 {
 	internal class LifeSpanHandler : ILifeSpanHandler
 	{
+		public event PopupRequestedEventHandler PopupRequested;
 		public bool DoClose(IWebBrowser chromiumWebBrowser, IBrowser browser)
 		{
 			return false;
@@ -27,7 +29,10 @@ namespace Chrominimum.Handlers
 
 		public bool OnBeforePopup(IWebBrowser chromiumWebBrowser, IBrowser browser, IFrame frame, string targetUrl, string targetFrameName, WindowOpenDisposition targetDisposition, bool userGesture, IPopupFeatures popupFeatures, IWindowInfo windowInfo, IBrowserSettings browserSettings, ref bool noJavascriptAccess, out IWebBrowser newBrowser)
 		{
+			var args = new PopupRequestedEventArgs { Url = targetUrl };
+
 			newBrowser = default(IWebBrowser);
+			PopupRequested?.Invoke(args);
 
 			return true;
 		}
