@@ -81,11 +81,15 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AppSettings.cs" />
+    <Compile Include="Handlers\RequestHandler.cs" />
+    <Compile Include="Handlers\ResourceHandler.cs" />
     <Compile Include="HashAlgorithm.cs" />
     <Compile Include="Handlers\ContextMenuHandler.cs" />
     <Compile Include="Handlers\DisplayHandler.cs" />
     <Compile Include="Handlers\KeyboardHandler.cs" />
     <Compile Include="Handlers\LifeSpanHandler.cs" />
+    <Compile Include="Pages\HtmlLoader.cs" />
+    <Compile Include="Events\UrlEventHandler.cs" />
     <Compile Include="MainWindow.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -113,6 +117,11 @@
     <None Include="App.config">
       <SubType>Designer</SubType>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Pages\BlockedContent.html" />
+    <EmbeddedResource Include="Pages\BlockedPage.html" />
+    <EmbeddedResource Include="Pages\LoadError.html" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Icon.ico" />

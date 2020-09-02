@@ -8,6 +8,7 @@
 
 using System;
 using System.IO;
+using System.Collections.Generic;
 using System.Windows.Forms;
 using CefSharp;
 using CefSharp.WinForms;
@@ -39,6 +40,9 @@ namespace Chrominimum
 		private IText text;
 		private AppSettings appSettings;
 
+		private List<MainWindow> instances;
+		private int instanceIdCounter = default(int);
+
 		private IUserInterfaceFactory uiFactory;
 		private ITaskbar taskbar;
 		private SebMessageBox.IMessageBox messageBox;
@@ -46,39 +50,52 @@ namespace Chrominimum
 
 		internal SEBContext(AppSettings settings)
 		{
-				appSettings = settings;
-				logger = new Logger();
-				hashAlgorithm = new HashAlgorithm();
+			appSettings = settings;
+			logger = new Logger();
+			hashAlgorithm = new HashAlgorithm();
+			instances = new List<MainWindow>();
 
-				InitializeLogging(appSettings);
-				InitializeText();
+			InitializeLogging(appSettings);
+			InitializeText();
 
-				uiFactory = new UserInterfaceFactory(text);
-				messageBox = new MessageBoxFactory(text);
+			uiFactory = new UserInterfaceFactory(text);
+			messageBox = new MessageBoxFactory(text);
 
-				taskbar = uiFactory.CreateTaskbar(logger);
-				taskbar.QuitButtonClicked += Shell_QuitButtonClicked;
-				taskbar.Show();
+			taskbar = uiFactory.CreateTaskbar(logger);
+			taskbar.QuitButtonClicked += Shell_QuitButtonClicked;
+			taskbar.Show();
 
-				var audioSettings = new AudioSettings();
-				var audio = new Audio(audioSettings, new ModuleLogger(logger, nameof(Audio)));
-				audio.Initialize();
-				taskbar.AddSystemControl(uiFactory.CreateAudioControl(audio, Location.Taskbar));
+			var audioSettings = new AudioSettings();
+			var audio = new Audio(audioSettings, new ModuleLogger(logger, nameof(Audio)));
+			audio.Initialize();
+			taskbar.AddSystemControl(uiFactory.CreateAudioControl(audio, Location.Taskbar));
 
-				var keyboard = new Keyboard(new ModuleLogger(logger, nameof(Keyboard)));
-				keyboard.Initialize();
-				taskbar.AddSystemControl(uiFactory.CreateKeyboardLayoutControl(keyboard, Location.Taskbar));
+			var keyboard = new Keyboard(new ModuleLogger(logger, nameof(Keyboard)));
+			keyboard.Initialize();
+			taskbar.AddSystemControl(uiFactory.CreateKeyboardLayoutControl(keyboard, Location.Taskbar));
 
-				var powerSupply = new PowerSupply(new ModuleLogger(logger, nameof(PowerSupply)));
-				powerSupply.Initialize();
-				taskbar.AddSystemControl(uiFactory.CreatePowerSupplyControl(powerSupply, Location.Taskbar));
+			var powerSupply = new PowerSupply(new ModuleLogger(logger, nameof(PowerSupply)));
+			powerSupply.Initialize();
+			taskbar.AddSystemControl(uiFactory.CreatePowerSupplyControl(powerSupply, Location.Taskbar));
 
-				var wirelessAdapter = new WirelessAdapter(new ModuleLogger(logger, nameof(WirelessAdapter)));
-				wirelessAdapter.Initialize();
-				taskbar.AddSystemControl(uiFactory.CreateWirelessNetworkControl(wirelessAdapter, Location.Taskbar));
+			var wirelessAdapter = new WirelessAdapter(new ModuleLogger(logger, nameof(WirelessAdapter)));
+			wirelessAdapter.Initialize();
+			taskbar.AddSystemControl(uiFactory.CreateWirelessNetworkControl(wirelessAdapter, Location.Taskbar));
 
-				browser = new MainWindow(appSettings);
-				browser.Show();
+			CreateNewInstance(null);
+		}
+
+		private void CreateNewInstance(string url = null)
+		{
+			var id = ++instanceIdCounter;
+			var isMainInstance = instances.Count == 0;
+			var instanceLogger = new ModuleLogger(logger, nameof(MainWindow));
+			var startUrl = url ?? appSettings.StartUrl;
+			var instance = new MainWindow(appSettings, id, isMainInstance, startUrl, instanceLogger, text);
+
+			instance.Show();
+			instances.Add(instance);
+			logger.Info($"Created browser instance {instance.Id}.");
 		}
 
 		private void ClosingSeqence()
