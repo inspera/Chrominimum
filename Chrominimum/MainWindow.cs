@@ -8,15 +8,22 @@
 
 using System;
 using System.Drawing;
+using System.Collections.Generic;
 using System.Windows.Forms;
 using CefSharp;
 using CefSharp.WinForms;
 using Chrominimum.Handlers;
 using Chrominimum.Events;
 
+using SafeExamBrowser.Applications.Contracts;
+using SafeExamBrowser.Applications.Contracts.Events;
 using SafeExamBrowser.I18n.Contracts;
+using SafeExamBrowser.Logging;
 using SafeExamBrowser.Logging.Contracts;
 using SafeExamBrowser.Settings.Browser;
+using SafeExamBrowser.Settings.Logging;
+using SafeExamBrowser.Applications.Contracts.Resources.Icons;
+
 using ResourceHandler = Chrominimum.Handlers.ResourceHandler;
 using BrowserSettings = SafeExamBrowser.Settings.Browser.BrowserSettings;
 
@@ -76,9 +83,9 @@ namespace Chrominimum
 
 		private void InitializeBrowser()
 		{
-            var requestLogger = logger.CloneFor($"{nameof(RequestHandler)} #{Id}");
-            var resourceHandler = new ResourceHandler(settings, logger, text);
-            var requestHandler = new RequestHandler(requestLogger, settings, resourceHandler, text);
+			var requestLogger = logger.CloneFor($"{nameof(RequestHandler)} #{Id}");
+			var resourceHandler = new ResourceHandler(settings, logger, text);
+			var requestHandler = new RequestHandler(requestLogger, settings, resourceHandler, text);
 			var lifeSpanHandler = new LifeSpanHandler();
 			lifeSpanHandler.PopupRequested += LifeSpanHandler_PopupRequested;
 
@@ -94,9 +101,9 @@ namespace Chrominimum
 			browser.MenuHandler = new ContextMenuHandler();
 			browser.TitleChanged += Browser_TitleChanged;
 
-            browser.RequestHandler = requestHandler;
+			browser.RequestHandler = requestHandler;
 
-            Controls.Add(browser);
+			Controls.Add(browser);
 		}
 
 		private void InitializeMenu()

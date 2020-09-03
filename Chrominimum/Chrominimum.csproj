@@ -81,6 +81,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AppSettings.cs" />
+    <Compile Include="BrowserApplication.cs" />
     <Compile Include="Events\PopupRequestedEventArgs.cs" />
     <Compile Include="Events\PopupRequestedEventHandler.cs" />
     <Compile Include="Handlers\RequestHandler.cs" />
@@ -130,6 +131,10 @@
     <EmbeddedResource Include="Logo.png" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\SafeExamBrowser.Applications.Contracts\SafeExamBrowser.Applications.Contracts.csproj">
+      <Project>{AC77745D-3B41-43E2-8E84-D40E5A4EE77F}</Project>
+      <Name>SafeExamBrowser.Applications.Contracts</Name>
+    </ProjectReference>
     <ProjectReference Include="..\SafeExamBrowser.Settings\SafeExamBrowser.Settings.csproj">
       <Project>{30b2d907-5861-4f39-abad-c4abf1b3470e}</Project>
       <Name>SafeExamBrowser.Settings</Name>

@@ -61,6 +61,7 @@ namespace Chrominimum
 		internal int PopupWindowWidth { get; set; }
 		internal string PopupWindowSide { get; set; }
 		internal string UserAgentSuffix { get; set; }
+		internal string LogFilePrefix { get; set; }
 
 		internal const string AppName = "SEBLight";
 
@@ -84,6 +85,7 @@ namespace Chrominimum
 					QuitPasswordHash = options.QuitPasswordHash;
 					ParseLayout(options.Layout);
 					UserAgentSuffix = options.UserAgentSuffix;
+					LogFilePrefix = Path.Combine(LogDir, StartTime.ToString("yyyy-MM-dd\\_HH\\hmm\\mss\\s"));
 				});
 
 			var args = Environment.GetCommandLineArgs();

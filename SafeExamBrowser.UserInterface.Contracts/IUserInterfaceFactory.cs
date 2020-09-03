@@ -7,6 +7,7 @@
  */
 
 using System.Collections.Generic;
+using SafeExamBrowser.Applications.Contracts;
 using SafeExamBrowser.I18n.Contracts;
 using SafeExamBrowser.Logging.Contracts;
 using SafeExamBrowser.SystemComponents.Contracts.Audio;
@@ -29,6 +30,11 @@ namespace SafeExamBrowser.UserInterface.Contracts
 		/// Creates a system control which allows to change the audio settings of the computer.
 		/// </summary>
 		ISystemControl CreateAudioControl(IAudio audio, Location location);
+
+		/// <summary>
+		/// Creates an application control for the specified application and location.
+		/// </summary>
+		IApplicationControl CreateApplicationControl(IApplication application, Location location);
 
 		/// <summary>
 		/// Creates a system control which allows to change the keyboard layout of the computer.

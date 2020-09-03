@@ -43,6 +43,11 @@ namespace SafeExamBrowser.UserInterface.Desktop
 			InitializeFontAwesome();
 		}
 
+		public IApplicationControl CreateApplicationControl(IApplication application, Location location)
+		{
+			return new Controls.Taskbar.ApplicationControl(application);
+		}
+
 		public ISystemControl CreateAudioControl(IAudio audio, Location location)
 		{
 			return new Controls.Taskbar.AudioControl(audio, text);
