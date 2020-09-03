@@ -36,6 +36,9 @@ namespace Chrominimum
 		[Option("layout", Default="L80:R50", Required = false)]
 		public string Layout { get; set; }
 
+		[Option("useragent-suffix", Required = false)]
+		public string UserAgentSuffix { get; set; }
+
 		[Value(0)]
 		public string ProgramName { get; set; }
 
@@ -57,31 +60,31 @@ namespace Chrominimum
 		internal string MainWindowSide { get; set; }
 		internal int PopupWindowWidth { get; set; }
 		internal string PopupWindowSide { get; set; }
-
+		internal string UserAgentSuffix { get; set; }
 
 		internal const string AppName = "SEBLight";
 
 		internal void Initialize()
 		{
 			var appDataLocalFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), AppName);
-			// StartTime = ((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds().ToString();
 			StartTime = DateTime.Now;
 
 			var result = Parser.Default.ParseArguments<Options>(Environment.GetCommandLineArgs())
 				.WithParsed(options => {
-						AllowNavigation = options.AllowNavigation;
-						AllowReload = !options.DisableReload;
-						ShowMenu = false;
-						ShowMaximized = options.ShowMaximized;
-						StartUrl = !String.IsNullOrEmpty(options.StartUrl) && IsValidStartUrl(options.StartUrl)
-							? options.StartUrl
-							: ConfigurationManager.AppSettings["StartUrl"];
-						LogDir = !String.IsNullOrEmpty(options.LogDir)
-							? options.LogDir
-							: Path.Combine(appDataLocalFolder, "Logs");
-						QuitPasswordHash = options.QuitPasswordHash;
-						ParseLayout(options.Layout);
-					});
+					AllowNavigation = options.AllowNavigation;
+					AllowReload = !options.DisableReload;
+					ShowMenu = false;
+					ShowMaximized = options.ShowMaximized;
+					StartUrl = !String.IsNullOrEmpty(options.StartUrl) && IsValidStartUrl(options.StartUrl)
+						? options.StartUrl
+						: ConfigurationManager.AppSettings["StartUrl"];
+					LogDir = !String.IsNullOrEmpty(options.LogDir)
+						? options.LogDir
+						: Path.Combine(appDataLocalFolder, "Logs");
+					QuitPasswordHash = options.QuitPasswordHash;
+					ParseLayout(options.Layout);
+					UserAgentSuffix = options.UserAgentSuffix;
+				});
 
 			var args = Environment.GetCommandLineArgs();
 		}
@@ -90,7 +93,7 @@ namespace Chrominimum
         {
 			string[] blocks = rawValue.Split(':');
 			if (blocks.Length != 2)
-            {
+			{
 				throw new ArgumentException("wrong layout: " + rawValue);
 			}
 			ParseOneLayoutBlock(blocks[0], value => MainWindowSide = value, value => MainWindowWidth = value);
@@ -98,9 +101,9 @@ namespace Chrominimum
 		}
 
 		private void ParseOneLayoutBlock(string rawValue, Action<string> setSide, Action<int> setWidth)
-        {
+		{
 			if(rawValue[0] != 'L' && rawValue[0] != 'R')
-            {
+			{
 				throw new ArgumentException("wrong layout: " + rawValue);
 			}
 			setSide(rawValue[0].ToString());

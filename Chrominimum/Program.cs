@@ -21,7 +21,7 @@ using SafeExamBrowser.UserInterface.Contracts;
 using SafeExamBrowser.UserInterface.Contracts.Shell;
 using SafeExamBrowser.UserInterface.Desktop;
 using SebMessageBox = SafeExamBrowser.UserInterface.Contracts.MessageBox;
-
+using SafeExamBrowser.Settings.Logging;
 
 using SafeExamBrowser.Settings.SystemComponents;
 using SafeExamBrowser.SystemComponents.Audio;
@@ -49,6 +49,8 @@ namespace Chrominimum
 		private ITaskbar taskbar;
 		private SebMessageBox.IMessageBox messageBox;
 		private HashAlgorithm hashAlgorithm;
+
+		private string logFilePrefix;
 
 		internal SEBContext(AppSettings settings)
 		{
@@ -84,7 +86,24 @@ namespace Chrominimum
 			wirelessAdapter.Initialize();
 			taskbar.AddSystemControl(uiFactory.CreateWirelessNetworkControl(wirelessAdapter, Location.Taskbar));
 
+			InitializeCef();
 			CreateNewInstance(null);
+		}
+
+		private void InitializeCef()
+		{
+			logger.Info("Starting initialization...");
+
+			var cefSettings = GenerateCefSettings();
+			var success = Cef.Initialize(cefSettings, true, default(IApp));
+
+			if (!success)
+			{
+				logger.Error("Failed to initialize browser!");
+				throw new Exception("Failed to initialize browser!");
+			}
+
+			logger.Info("Initialized browser.");
 		}
 
 		private void CreateNewInstance(string url = null)
@@ -107,6 +126,39 @@ namespace Chrominimum
 			CreateNewInstance(args.Url);
 		}
 
+		private CefSettings GenerateCefSettings()
+		{
+			var warning = logger.LogLevel == LogLevel.Warning;
+			var error = logger.LogLevel == LogLevel.Error;
+			var cefSettings = new CefSettings();
+
+			cefSettings.CefCommandLineArgs.Add("enable-media-stream");
+
+			cefSettings.LogFile = $"{logFilePrefix}_Browser.log";
+			cefSettings.LogSeverity = error ? LogSeverity.Error : (warning ? LogSeverity.Warning : LogSeverity.Info);
+			cefSettings.UserAgent = GenerateUserAgent();
+
+			logger.Debug($"UserAgent: {cefSettings.UserAgent}");
+			logger.Debug($"Cache Path: {cefSettings.CachePath}");
+			logger.Debug($"Engine Version: Chromium {Cef.ChromiumVersion}, CEF {Cef.CefVersion}, CefSharp {Cef.CefSharpVersion}");
+			logger.Debug($"Log File: {cefSettings.LogFile}");
+			logger.Debug($"Log Severity: {cefSettings.LogSeverity}.");
+
+			return cefSettings;
+		}
+
+		private string GenerateUserAgent()
+		{
+			var osVersion = $"{Environment.OSVersion.Version.Major}.{Environment.OSVersion.Version.Minor}; Win64; x64";
+			var userAgent = $"Mozilla/5.0 (Windows NT {osVersion}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{Cef.ChromiumVersion} Safari/537.36";
+
+			if (!string.IsNullOrWhiteSpace(appSettings.UserAgentSuffix))
+			{
+				userAgent = $"{userAgent} {appSettings.UserAgentSuffix}";
+			}
+
+			return userAgent;
+		}
 
 		private void ClosingSeqence()
 		{
@@ -182,8 +234,9 @@ namespace Chrominimum
 
 		private void InitializeLogging(AppSettings settings)
 		{
-			var logFilePrefix = settings.StartTime.ToString("yyyy-MM-dd\\_HH\\hmm\\mss\\s");
-			var runtimeLog = Path.Combine(settings.LogDir, $"{logFilePrefix}_Runtime.log");
+			logFilePrefix = Path.Combine(settings.LogDir, settings.StartTime.ToString("yyyy-MM-dd\\_HH\\hmm\\mss\\s"));
+
+			var runtimeLog = $"{logFilePrefix}_Runtime.log";
 			var logFileWriter = new LogFileWriter(new DefaultLogFormatter(), runtimeLog);
 
 			logFileWriter.Initialize();
@@ -204,25 +257,11 @@ namespace Chrominimum
 		public static void Main()
 		{
 			var appSettings = new AppSettings();
-			var cefSettings = new CefSettings();
-
 			appSettings.Initialize();
-			cefSettings.CefCommandLineArgs.Add("enable-media-stream");
 
-			var success = Cef.Initialize(cefSettings, true, default(IApp));
-
-			if (success)
-			{
-				string s = System.IO.Packaging.PackUriHelper.UriSchemePack;
-
-				Application.EnableVisualStyles();
-				Application.SetCompatibleTextRenderingDefault(false);
-				Application.Run(new SEBContext(appSettings));
-			}
-			else
-			{
-				MessageBox.Show("Failed to initialize the browser engine!", "Fatal Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-			}
+			Application.EnableVisualStyles();
+			Application.SetCompatibleTextRenderingDefault(false);
+			Application.Run(new SEBContext(appSettings));
 
 			Cef.Shutdown();
 		}
