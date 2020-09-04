@@ -67,6 +67,12 @@
     <Reference Include="WindowsFormsIntegration" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Controls\Taskbar\ApplicationControl.xaml.cs">
+      <DependentUpon>ApplicationControl.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\Taskbar\ApplicationWindowButton.xaml.cs">
+      <DependentUpon>ApplicationWindowButton.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Controls\Taskbar\AudioControl.xaml.cs">
       <DependentUpon>AudioControl.xaml</DependentUpon>
     </Compile>
@@ -91,6 +97,12 @@
     <Compile Include="Controls\Taskbar\WirelessNetworkControl.xaml.cs">
       <DependentUpon>WirelessNetworkControl.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Controls\Taskview\WindowControl.xaml.cs">
+      <DependentUpon>WindowControl.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Windows\Taskview.xaml.cs">
+      <DependentUpon>Taskview.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Windows\FileSystemDialog.xaml.cs">
       <DependentUpon>FileSystemDialog.xaml</DependentUpon>
     </Compile>
@@ -109,6 +121,14 @@
     <Compile Include="ViewModels\DateTimeViewModel.cs" />
     <Compile Include="ViewModels\LogViewModel.cs" />
     <Compile Include="ViewModels\ProgressIndicatorViewModel.cs" />
+    <Page Include="Controls\Taskbar\ApplicationControl.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Controls\Taskbar\ApplicationWindowButton.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Controls\Taskbar\AudioControl.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -189,6 +209,14 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Resource>
+    <Page Include="Controls\Taskview\WindowControl.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Windows\Taskview.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Windows\FileSystemDialog.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>

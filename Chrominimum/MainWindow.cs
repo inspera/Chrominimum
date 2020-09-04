@@ -8,15 +8,22 @@
 
 using System;
 using System.Drawing;
+using System.Collections.Generic;
 using System.Windows.Forms;
 using CefSharp;
 using CefSharp.WinForms;
 using Chrominimum.Handlers;
 using Chrominimum.Events;
 
+using SafeExamBrowser.Applications.Contracts;
+using SafeExamBrowser.Applications.Contracts.Events;
 using SafeExamBrowser.I18n.Contracts;
+using SafeExamBrowser.Logging;
 using SafeExamBrowser.Logging.Contracts;
 using SafeExamBrowser.Settings.Browser;
+using SafeExamBrowser.Settings.Logging;
+using SafeExamBrowser.Applications.Contracts.Resources.Icons;
+
 using ResourceHandler = Chrominimum.Handlers.ResourceHandler;
 using BrowserSettings = SafeExamBrowser.Settings.Browser.BrowserSettings;
 
@@ -35,6 +42,8 @@ namespace Chrominimum
 		private bool mainInstance;
 
 		internal event PopupRequestedEventHandler PopupRequested;
+		public event IconChangedEventHandler IconChanged;
+		public event TitleChangedEventHandler TitleChanged;
 
 		internal MainWindow(AppSettings appSettings, int id, bool mainInstance, string startUrl, IModuleLogger logger, IText text)
 		{
@@ -49,6 +58,14 @@ namespace Chrominimum
 			InitializeComponent();
 		}
 		internal int Id { get; }
+
+		internal string Address
+		{
+			get
+			{
+				return browser.Address;
+			}
+		}
 
 		private const int CP_NOCLOSE_BUTTON = 0x200;
 
@@ -76,9 +93,9 @@ namespace Chrominimum
 
 		private void InitializeBrowser()
 		{
-            var requestLogger = logger.CloneFor($"{nameof(RequestHandler)} #{Id}");
-            var resourceHandler = new ResourceHandler(settings, logger, text);
-            var requestHandler = new RequestHandler(requestLogger, settings, resourceHandler, text);
+			var requestLogger = logger.CloneFor($"{nameof(RequestHandler)} #{Id}");
+			var resourceHandler = new ResourceHandler(settings, logger, text);
+			var requestHandler = new RequestHandler(requestLogger, settings, resourceHandler, text);
 			var lifeSpanHandler = new LifeSpanHandler();
 			lifeSpanHandler.PopupRequested += LifeSpanHandler_PopupRequested;
 
@@ -94,9 +111,9 @@ namespace Chrominimum
 			browser.MenuHandler = new ContextMenuHandler();
 			browser.TitleChanged += Browser_TitleChanged;
 
-            browser.RequestHandler = requestHandler;
+			browser.RequestHandler = requestHandler;
 
-            Controls.Add(browser);
+			Controls.Add(browser);
 		}
 
 		private void InitializeMenu()
@@ -136,13 +153,13 @@ namespace Chrominimum
 			{
 				WindowState = FormWindowState.Maximized;
 			}
-			Height = Screen.PrimaryScreen.WorkingArea.Height;
+			Height = Screen.PrimaryScreen.WorkingArea.Height - appSettings.TaskbarHeight;
 			Width = (int)(Screen.PrimaryScreen.WorkingArea.Width * (mainInstance ? appSettings.MainWindowWidth : appSettings.PopupWindowWidth) / 100.0);
 
 			var side = mainInstance ? appSettings.MainWindowSide : appSettings.PopupWindowSide;
 			Location = new Point(Screen.PrimaryScreen.WorkingArea.Left, Screen.PrimaryScreen.WorkingArea.Top);
 			if (side == "R")
-            {
+			{
 				Location = new Point(Screen.PrimaryScreen.WorkingArea.Right - Width);
 			}
 		}
@@ -155,6 +172,7 @@ namespace Chrominimum
 		private void Browser_TitleChanged(object sender, TitleChangedEventArgs e)
 		{
 			Invoke(new Action(() => Text = e.Title));
+			TitleChanged?.Invoke(e.Title);
 		}
 
 		private void Browser_LoadError(object sender, LoadErrorEventArgs e)

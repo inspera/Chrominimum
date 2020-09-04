@@ -21,7 +21,6 @@ using SafeExamBrowser.UserInterface.Contracts;
 using SafeExamBrowser.UserInterface.Contracts.Shell;
 using SafeExamBrowser.UserInterface.Desktop;
 using SebMessageBox = SafeExamBrowser.UserInterface.Contracts.MessageBox;
-using SafeExamBrowser.Settings.Logging;
 
 using SafeExamBrowser.Settings.SystemComponents;
 using SafeExamBrowser.SystemComponents.Audio;
@@ -37,29 +36,24 @@ namespace Chrominimum
 
 	internal class SEBContext : ApplicationContext
 	{
-		private MainWindow browser;
+		private BrowserApplication browser;
 		private ILogger logger;
 		private IText text;
 		private AppSettings appSettings;
 
-		private List<MainWindow> instances;
-		private int instanceIdCounter = default(int);
-
 		private IUserInterfaceFactory uiFactory;
 		private ITaskbar taskbar;
+		private ITaskview taskview;
 		private SebMessageBox.IMessageBox messageBox;
 		private HashAlgorithm hashAlgorithm;
-
-		private string logFilePrefix;
 
 		internal SEBContext(AppSettings settings)
 		{
 			appSettings = settings;
 			logger = new Logger();
 			hashAlgorithm = new HashAlgorithm();
-			instances = new List<MainWindow>();
 
-			InitializeLogging(appSettings);
+			InitializeLogging();
 			InitializeText();
 
 			uiFactory = new UserInterfaceFactory(text);
@@ -68,6 +62,9 @@ namespace Chrominimum
 			taskbar = uiFactory.CreateTaskbar(logger);
 			taskbar.QuitButtonClicked += Shell_QuitButtonClicked;
 			taskbar.Show();
+			appSettings.TaskbarHeight = taskbar.GetAbsoluteHeight();
+
+			taskview = uiFactory.CreateTaskview();
 
 			var audioSettings = new AudioSettings();
 			var audio = new Audio(audioSettings, new ModuleLogger(logger, nameof(Audio)));
@@ -86,82 +83,17 @@ namespace Chrominimum
 			wirelessAdapter.Initialize();
 			taskbar.AddSystemControl(uiFactory.CreateWirelessNetworkControl(wirelessAdapter, Location.Taskbar));
 
-			InitializeCef();
-			CreateNewInstance(null);
-		}
+			browser = new BrowserApplication(appSettings, true, new ModuleLogger(logger, nameof(BrowserApplication)), text);
+			taskbar.AddApplicationControl(uiFactory.CreateApplicationControl(browser, Location.Taskbar), true);
 
-		private void InitializeCef()
-		{
-			logger.Info("Starting initialization...");
-
-			var cefSettings = GenerateCefSettings();
-			var success = Cef.Initialize(cefSettings, true, default(IApp));
-
-			if (!success)
-			{
-				logger.Error("Failed to initialize browser!");
-				throw new Exception("Failed to initialize browser!");
-			}
-
-			logger.Info("Initialized browser.");
-		}
-
-		private void CreateNewInstance(string url = null)
-		{
-			var id = ++instanceIdCounter;
-			var isMainInstance = instances.Count == 0;
-			var instanceLogger = new ModuleLogger(logger, nameof(MainWindow));
-			var startUrl = url ?? appSettings.StartUrl;
-			var instance = new MainWindow(appSettings, id, isMainInstance, startUrl, instanceLogger, text);
-			instance.PopupRequested += Instance_PopupRequested;
-
-			instance.Show();
-			instances.Add(instance);
-			logger.Info($"Created browser instance {instance.Id}.");
-		}
-
-		private void Instance_PopupRequested(PopupRequestedEventArgs args)
-		{
-			logger.Info($"Received request to create new instance for '{args.Url}'...");
-			CreateNewInstance(args.Url);
-		}
-
-		private CefSettings GenerateCefSettings()
-		{
-			var warning = logger.LogLevel == LogLevel.Warning;
-			var error = logger.LogLevel == LogLevel.Error;
-			var cefSettings = new CefSettings();
-
-			cefSettings.CefCommandLineArgs.Add("enable-media-stream");
-
-			cefSettings.LogFile = $"{logFilePrefix}_Browser.log";
-			cefSettings.LogSeverity = error ? LogSeverity.Error : (warning ? LogSeverity.Warning : LogSeverity.Info);
-			cefSettings.UserAgent = GenerateUserAgent();
-
-			logger.Debug($"UserAgent: {cefSettings.UserAgent}");
-			logger.Debug($"Cache Path: {cefSettings.CachePath}");
-			logger.Debug($"Engine Version: Chromium {Cef.ChromiumVersion}, CEF {Cef.CefVersion}, CefSharp {Cef.CefSharpVersion}");
-			logger.Debug($"Log File: {cefSettings.LogFile}");
-			logger.Debug($"Log Severity: {cefSettings.LogSeverity}.");
-
-			return cefSettings;
-		}
-
-		private string GenerateUserAgent()
-		{
-			var osVersion = $"{Environment.OSVersion.Version.Major}.{Environment.OSVersion.Version.Minor}; Win64; x64";
-			var userAgent = $"Mozilla/5.0 (Windows NT {osVersion}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{Cef.ChromiumVersion} Safari/537.36";
-
-			if (!string.IsNullOrWhiteSpace(appSettings.UserAgentSuffix))
-			{
-				userAgent = $"{userAgent} {appSettings.UserAgentSuffix}";
-			}
-
-			return userAgent;
+			taskview.Add(browser);
+			browser.Initialize();
+			browser.CreateNewInstance();
 		}
 
 		private void ClosingSeqence()
 		{
+			browser.Terminate();
 			ExitThread();
 		}
 
@@ -232,11 +164,9 @@ namespace Chrominimum
 			return false;
 		}
 
-		private void InitializeLogging(AppSettings settings)
+		private void InitializeLogging()
 		{
-			logFilePrefix = Path.Combine(settings.LogDir, settings.StartTime.ToString("yyyy-MM-dd\\_HH\\hmm\\mss\\s"));
-
-			var runtimeLog = $"{logFilePrefix}_Runtime.log";
+			var runtimeLog = $"{appSettings.LogFilePrefix}_Runtime.log";
 			var logFileWriter = new LogFileWriter(new DefaultLogFormatter(), runtimeLog);
 
 			logFileWriter.Initialize();
@@ -262,8 +192,6 @@ namespace Chrominimum
 			Application.EnableVisualStyles();
 			Application.SetCompatibleTextRenderingDefault(false);
 			Application.Run(new SEBContext(appSettings));
-
-			Cef.Shutdown();
 		}
 	}
 }
