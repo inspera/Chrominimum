@@ -42,6 +42,8 @@ namespace Chrominimum
 		private bool mainInstance;
 
 		internal event PopupRequestedEventHandler PopupRequested;
+		public event IconChangedEventHandler IconChanged;
+		public event TitleChangedEventHandler TitleChanged;
 
 		internal MainWindow(AppSettings appSettings, int id, bool mainInstance, string startUrl, IModuleLogger logger, IText text)
 		{
@@ -149,7 +151,7 @@ namespace Chrominimum
 			var side = mainInstance ? appSettings.MainWindowSide : appSettings.PopupWindowSide;
 			Location = new Point(Screen.PrimaryScreen.WorkingArea.Left, Screen.PrimaryScreen.WorkingArea.Top);
 			if (side == "R")
-            {
+			{
 				Location = new Point(Screen.PrimaryScreen.WorkingArea.Right - Width);
 			}
 		}
@@ -162,6 +164,7 @@ namespace Chrominimum
 		private void Browser_TitleChanged(object sender, TitleChangedEventArgs e)
 		{
 			Invoke(new Action(() => Text = e.Title));
+			TitleChanged?.Invoke(e.Title);
 		}
 
 		private void Browser_LoadError(object sender, LoadErrorEventArgs e)

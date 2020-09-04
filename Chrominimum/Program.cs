@@ -43,6 +43,7 @@ namespace Chrominimum
 
 		private IUserInterfaceFactory uiFactory;
 		private ITaskbar taskbar;
+		private ITaskview taskview;
 		private SebMessageBox.IMessageBox messageBox;
 		private HashAlgorithm hashAlgorithm;
 
@@ -61,6 +62,8 @@ namespace Chrominimum
 			taskbar = uiFactory.CreateTaskbar(logger);
 			taskbar.QuitButtonClicked += Shell_QuitButtonClicked;
 			taskbar.Show();
+
+			taskview = uiFactory.CreateTaskview();
 
 			var audioSettings = new AudioSettings();
 			var audio = new Audio(audioSettings, new ModuleLogger(logger, nameof(Audio)));
@@ -81,6 +84,10 @@ namespace Chrominimum
 
 			browser = new BrowserApplication(appSettings, true, new ModuleLogger(logger, nameof(BrowserApplication)), text);
 			taskbar.AddApplicationControl(uiFactory.CreateApplicationControl(browser, Location.Taskbar), true);
+
+			taskview.Add(browser);
+			browser.Initialize();
+			browser.CreateNewInstance();
 		}
 
 		private void ClosingSeqence()

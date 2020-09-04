@@ -76,10 +76,10 @@ namespace SafeExamBrowser.UserInterface.Contracts
 		/// </summary>
 		ITaskbar CreateTaskbar(ILogger logger);
 
-		// /// <summary>
-		// /// Creates a new taskview.
-		// /// </summary>
-		// ITaskview CreateTaskview();
+		/// <summary>
+		/// Creates a new taskview.
+		/// </summary>
+		ITaskview CreateTaskview();
 
 		/// <summary>
 		/// Creates a system control which allows to change the wireless network connection of the computer.

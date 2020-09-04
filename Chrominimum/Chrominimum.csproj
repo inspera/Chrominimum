@@ -82,6 +82,8 @@
   <ItemGroup>
     <Compile Include="AppSettings.cs" />
     <Compile Include="BrowserApplication.cs" />
+    <Compile Include="BrowserApplicationInstance.cs" />
+    <Compile Include="Events\InstanceTerminatedEventHandler.cs" />
     <Compile Include="Events\PopupRequestedEventArgs.cs" />
     <Compile Include="Events\PopupRequestedEventHandler.cs" />
     <Compile Include="Handlers\RequestHandler.cs" />

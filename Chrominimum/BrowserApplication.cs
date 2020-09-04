@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Drawing;
 using System.Collections.Generic;
 using System.Windows.Forms;
@@ -39,13 +40,12 @@ namespace Chrominimum
 
 		public event WindowsChangedEventHandler WindowsChanged;
 
-		private List<MainWindow> instances;
+		private List<BrowserApplicationInstance> instances;
 
 		private IModuleLogger logger;
 		private BrowserSettings settings;
 		private AppSettings appSettings;
 		private IText text;
-		private MainWindow mainWindow;
 		private int instanceIdCounter = default(int);
 
 		internal BrowserApplication(AppSettings appSettings, bool mainInstance, IModuleLogger logger, IText text)
@@ -53,17 +53,15 @@ namespace Chrominimum
 			this.appSettings = appSettings;
 			this.logger = logger;
 			this.text = text;
-			this.instances = new List<MainWindow>();
+			this.instances = new List<BrowserApplicationInstance>();
 			Icon = new BrowserIconResource();
 
-			Initialize();
-			CreateNewInstance();
+			this.WindowsChanged += Instance_WindowsChanged;
 		}
 
 		public IEnumerable<IApplicationWindow> GetWindows()
 		{
-			//return new List<IApplicationWindow>(instances);
-			return new List<IApplicationWindow>();
+			return new List<IApplicationWindow>(instances);
 		}
 		public void Initialize()
 		{
@@ -102,26 +100,20 @@ namespace Chrominimum
 			return cefSettings;
 		}
 
-		private void CreateNewInstance(string url = null)
+		internal void CreateNewInstance(string url = null)
 		{
 			var id = ++instanceIdCounter;
 			var isMainInstance = instances.Count == 0;
 			var instanceLogger = new ModuleLogger(logger, nameof(MainWindow));
 			var startUrl = url ?? appSettings.StartUrl;
-			var instance = new MainWindow(appSettings, id, isMainInstance, startUrl, instanceLogger, text);
+			var instance = new BrowserApplicationInstance(appSettings, id, isMainInstance, startUrl, instanceLogger, text);
 			instance.PopupRequested += Instance_PopupRequested;
+			instance.Terminated += Instance_Terminated;
 
-			instance.Show();
+			instance.Activate();
 			instances.Add(instance);
 			logger.Info($"Created browser instance {instance.Id}.");
-
-			//taskbar.AddApplicationControl(uiFactory.CreateApplicationControl(Context.Browser, Location.Taskbar), true);
-		}
-
-		private void Instance_PopupRequested(PopupRequestedEventArgs args)
-		{
-			logger.Info($"Received request to create new instance for '{args.Url}'...");
-			CreateNewInstance(args.Url);
+			WindowsChanged?.Invoke();
 		}
 
 		private string GenerateUserAgent()
@@ -148,13 +140,29 @@ namespace Chrominimum
 
 			foreach (var instance in instances)
 			{
-				//instance.Terminated -= Instance_Terminated;
-				//instance.Terminate();
+				instance.Terminated -= Instance_Terminated;
+				instance.Terminate();
 				logger.Info($"Terminated browser instance {instance.Id}.");
 			}
 
 			Cef.Shutdown();
 			logger.Info("Terminated browser.");
+		}
+		private void Instance_PopupRequested(PopupRequestedEventArgs args)
+		{
+			logger.Info($"Received request to create new instance for '{args.Url}'...");
+			CreateNewInstance(args.Url);
+		}
+
+		private void Instance_Terminated(int id)
+		{
+			instances.Remove(instances.First(i => i.Id == id));
+			WindowsChanged?.Invoke();
+		}
+
+		private void Instance_WindowsChanged()
+		{
+			logger.Info($"Instance_WindowsChanged");
 		}
 	}
 

@@ -107,10 +107,10 @@ namespace SafeExamBrowser.UserInterface.Desktop
 			return new Taskbar(logger);
 		}
 
-		// public ITaskview CreateTaskview()
-		// {
-		// 	return new Taskview();
-		// }
+		public ITaskview CreateTaskview()
+		{
+			return new Taskview();
+		}
 
 		public ISystemControl CreateWirelessNetworkControl(IWirelessAdapter wirelessAdapter, Location location)
 		{
