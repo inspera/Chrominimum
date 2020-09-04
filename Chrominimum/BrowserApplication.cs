@@ -151,6 +151,16 @@ namespace Chrominimum
 		private void Instance_PopupRequested(PopupRequestedEventArgs args)
 		{
 			logger.Info($"Received request to create new instance for '{args.Url}'...");
+
+			foreach(var item in instances)
+			{
+				if (item.Address == args.Url)
+				{
+					logger.Info($"Address is already openned in the instance '{item.Id}'. Activating it...");
+					item.Activate();
+					return;
+				}
+			}
 			CreateNewInstance(args.Url);
 		}
 

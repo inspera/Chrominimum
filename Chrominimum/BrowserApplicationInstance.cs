@@ -68,6 +68,14 @@ namespace Chrominimum
 			window.PopupRequested += Control_PopupRequested;
 		}
 
+		public string Address
+		{
+			get
+			{
+				return window.Address;
+			}
+		}
+
 		public void Activate()
 		{
 			window.Show();

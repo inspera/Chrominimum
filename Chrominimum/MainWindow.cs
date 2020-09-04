@@ -59,6 +59,14 @@ namespace Chrominimum
 		}
 		internal int Id { get; }
 
+		internal string Address
+		{
+			get
+			{
+				return browser.Address;
+			}
+		}
+
 		private const int CP_NOCLOSE_BUTTON = 0x200;
 
 		protected override CreateParams CreateParams
