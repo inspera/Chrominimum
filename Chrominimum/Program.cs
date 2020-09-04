@@ -62,6 +62,7 @@ namespace Chrominimum
 			taskbar = uiFactory.CreateTaskbar(logger);
 			taskbar.QuitButtonClicked += Shell_QuitButtonClicked;
 			taskbar.Show();
+			appSettings.TaskbarHeight = taskbar.GetAbsoluteHeight();
 
 			taskview = uiFactory.CreateTaskview();
 
