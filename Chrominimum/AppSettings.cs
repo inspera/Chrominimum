@@ -39,6 +39,9 @@ namespace Chrominimum
 		[Option("useragent-suffix", Required = false)]
 		public string UserAgentSuffix { get; set; }
 
+		[Option("filters", Required = false)]
+		public string FiltersFileName { get; set; }
+
 		[Value(0)]
 		public string ProgramName { get; set; }
 
@@ -62,6 +65,7 @@ namespace Chrominimum
 		internal string PopupWindowSide { get; set; }
 		internal string UserAgentSuffix { get; set; }
 		internal string LogFilePrefix { get; set; }
+		internal string FiltersJsonLine { get; set; }
 
 		internal const string AppName = "SEBLight";
 
@@ -86,6 +90,14 @@ namespace Chrominimum
 					ParseLayout(options.Layout);
 					UserAgentSuffix = options.UserAgentSuffix;
 					LogFilePrefix = Path.Combine(LogDir, StartTime.ToString("yyyy-MM-dd\\_HH\\hmm\\mss\\s"));
+					if (!String.IsNullOrEmpty(options.FiltersFileName))
+					{
+						if (!File.Exists(options.FiltersFileName))
+						{
+							throw new ArgumentException("cant't find filters file: " + options.FiltersFileName);
+						}
+						FiltersJsonLine = File.ReadAllText(options.FiltersFileName);
+					}
 				});
 
 			var args = Environment.GetCommandLineArgs();

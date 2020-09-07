@@ -3,6 +3,8 @@ using System.Linq;
 using System.Drawing;
 using System.Collections.Generic;
 using System.Windows.Forms;
+using System.Text.RegularExpressions;
+
 using CefSharp;
 using CefSharp.WinForms;
 using Chrominimum.Handlers;
@@ -20,6 +22,8 @@ using SafeExamBrowser.Applications.Contracts.Resources.Icons;
 using ResourceHandler = Chrominimum.Handlers.ResourceHandler;
 using BrowserSettings = SafeExamBrowser.Settings.Browser.BrowserSettings;
 
+using Newtonsoft.Json.Linq;
+
 namespace Chrominimum
 {
 	internal class BrowserIconResource : BitmapIconResource
@@ -28,6 +32,11 @@ namespace Chrominimum
 		{
 			Uri = new Uri(uri ?? "pack://application:,,,/SafeExamBrowser.UserInterface.Desktop;component/Images/Inspera.ico");
 		}
+	}
+
+	internal class FiltersObj
+	{
+		public IList<string> SameWindowUrls { get; set; }
 	}
 
 	internal class BrowserApplication : IApplication
@@ -48,15 +57,29 @@ namespace Chrominimum
 		private IText text;
 		private int instanceIdCounter = default(int);
 
+		private List<Regex> sameWindowRxs;
+
 		internal BrowserApplication(AppSettings appSettings, bool mainInstance, IModuleLogger logger, IText text)
 		{
 			this.appSettings = appSettings;
 			this.logger = logger;
 			this.text = text;
 			this.instances = new List<BrowserApplicationInstance>();
+			this.sameWindowRxs = new List<Regex>();
 			Icon = new BrowserIconResource();
 
 			this.WindowsChanged += Instance_WindowsChanged;
+
+			if (!String.IsNullOrEmpty(appSettings.FiltersJsonLine))
+			{
+				dynamic filters = JObject.Parse(appSettings.FiltersJsonLine);
+				foreach (var item in filters["SingleInstanceURLs"])
+				{
+					// workaround: json parser is not happy about '\.' so \ is esacaped and we should restore it back here
+					Regex rx = new Regex(((string)item).Replace(@"\\", @"\"), RegexOptions.Compiled | RegexOptions.IgnoreCase);
+					this.sameWindowRxs.Add(rx);
+				}
+			}
 		}
 
 		public IEnumerable<IApplicationWindow> GetWindows()
@@ -152,9 +175,20 @@ namespace Chrominimum
 		{
 			logger.Info($"Received request to create new instance for '{args.Url}'...");
 
-			foreach(var item in instances)
+			Func<string, string, bool> SameUrl = (string curerntUrl, string requestedUrl) => {
+				foreach (var rx in this.sameWindowRxs)
+				{
+					if (rx.IsMatch(curerntUrl) && rx.IsMatch(requestedUrl))
+					{
+						return true;
+					}
+				}
+				return false;
+			};
+
+			foreach (var item in instances)
 			{
-				if (item.Address == args.Url)
+				if (item.Address == args.Url || SameUrl(item.Address, args.Url))
 				{
 					logger.Info($"Address is already openned in the instance '{item.Id}'. Activating it...");
 					item.Activate();
