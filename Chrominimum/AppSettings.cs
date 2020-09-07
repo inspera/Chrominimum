@@ -63,8 +63,6 @@ namespace Chrominimum
 		internal string UserAgentSuffix { get; set; }
 		internal string LogFilePrefix { get; set; }
 
-		internal int TaskbarHeight { get; set; }
-
 		internal const string AppName = "SEBLight";
 
 		internal void Initialize()
