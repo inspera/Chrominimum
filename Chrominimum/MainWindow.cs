@@ -153,7 +153,7 @@ namespace Chrominimum
 			{
 				WindowState = FormWindowState.Maximized;
 			}
-			Height = Screen.PrimaryScreen.WorkingArea.Height - appSettings.TaskbarHeight;
+			Height = Screen.PrimaryScreen.WorkingArea.Height;
 			Width = (int)(Screen.PrimaryScreen.WorkingArea.Width * (mainInstance ? appSettings.MainWindowWidth : appSettings.PopupWindowWidth) / 100.0);
 
 			var side = mainInstance ? appSettings.MainWindowSide : appSettings.PopupWindowSide;
