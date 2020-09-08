@@ -17,9 +17,10 @@ using CefSharp;
 using SafeExamBrowser.I18n.Contracts;
 using SafeExamBrowser.Logging.Contracts;
 using SafeExamBrowser.Settings.Browser.Filter;
+using SafeExamBrowser.Browser.Contracts.Filters;
 using SafeExamBrowser.Browser.Pages;
 using BrowserSettings = SafeExamBrowser.Settings.Browser.BrowserSettings;
-
+using Request = SafeExamBrowser.Browser.Contracts.Filters.Request;
 
 namespace Chrominimum.Handlers
 {
@@ -31,13 +32,18 @@ namespace Chrominimum.Handlers
 		private ILogger logger;
 		private IResourceHandler pageHandler;
 		private IText text;
+		private IRequestFilter filter;
+		private BrowserSettings settings;
 
-		internal ResourceHandler(BrowserSettings settings, ILogger logger, IText text)
+
+		internal ResourceHandler(BrowserSettings settings, IRequestFilter filter, ILogger logger, IText text)
 		{
 			this.algorithm = new SHA256Managed();
 			this.htmlLoader = new HtmlLoader(text);
+			this.filter = filter;
 			this.logger = logger;
 			this.text = text;
+			this.settings = settings;
 		}
 
 		protected override IResourceHandler GetResourceHandler(IWebBrowser webBrowser, IBrowser browser, IFrame frame, IRequest request)
@@ -73,6 +79,15 @@ namespace Chrominimum.Handlers
 		private bool Block(IRequest request)
 		{
 			var block = false;
+			if (settings.Filter.ProcessContentRequests)
+			{
+				var result = filter.Process(new Request { Url = request.Url });
+				if (result == FilterResult.Block)
+				{
+					block = true;
+					logger.Info($"Blocked content request for '{request.Url}' ({request.ResourceType}, {request.TransitionType}).");
+				}
+			}
 			return block;
 		}
 
@@ -83,17 +98,17 @@ namespace Chrominimum.Handlers
 
 		private IResourceHandler ResourceHandlerFor(ResourceType resourceType)
 		{
-            if (contentHandler == default(IResourceHandler))
-            {
-                contentHandler = CefSharp.ResourceHandler.FromString(htmlLoader.LoadBlockedContent());
-            }
+			if (contentHandler == default(IResourceHandler))
+			{
+				contentHandler = CefSharp.ResourceHandler.FromString(htmlLoader.LoadBlockedContent());
+			}
 
-            if (pageHandler == default(IResourceHandler))
-            {
-                pageHandler = CefSharp.ResourceHandler.FromString(htmlLoader.LoadBlockedPage());
-            }
+			if (pageHandler == default(IResourceHandler))
+			{
+				pageHandler = CefSharp.ResourceHandler.FromString(htmlLoader.LoadBlockedPage());
+			}
 
-            switch (resourceType)
+			switch (resourceType)
 			{
 				case ResourceType.MainFrame:
 				case ResourceType.SubFrame:

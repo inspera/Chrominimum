@@ -10,10 +10,12 @@ using System;
 using System.Drawing;
 using System.Collections.Generic;
 using System.Windows.Forms;
+using System.Text.RegularExpressions;
 using CefSharp;
 using CefSharp.WinForms;
 using Chrominimum.Handlers;
 using Chrominimum.Events;
+using Chrominimum.Filters;
 
 using SafeExamBrowser.Applications.Contracts;
 using SafeExamBrowser.Applications.Contracts.Events;
@@ -21,12 +23,16 @@ using SafeExamBrowser.I18n.Contracts;
 using SafeExamBrowser.Logging;
 using SafeExamBrowser.Logging.Contracts;
 using SafeExamBrowser.Settings.Browser;
+using SafeExamBrowser.Browser.Contracts.Filters;
+using SafeExamBrowser.Settings.Browser.Filter;
 using SafeExamBrowser.Settings.Logging;
 using SafeExamBrowser.Applications.Contracts.Resources.Icons;
 
 using ResourceHandler = Chrominimum.Handlers.ResourceHandler;
 using BrowserSettings = SafeExamBrowser.Settings.Browser.BrowserSettings;
 
+using Newtonsoft.Json.Linq;
+using Request = SafeExamBrowser.Browser.Contracts.Filters.Request;
 
 namespace Chrominimum
 {
@@ -94,10 +100,13 @@ namespace Chrominimum
 		private void InitializeBrowser()
 		{
 			var requestLogger = logger.CloneFor($"{nameof(RequestHandler)} #{Id}");
-			var resourceHandler = new ResourceHandler(settings, logger, text);
-			var requestHandler = new RequestHandler(requestLogger, settings, resourceHandler, text);
+			var requestFilter = new RequestFilter();
+			var resourceHandler = new ResourceHandler(settings, requestFilter, logger, text);
+			var requestHandler = new RequestHandler(requestLogger, settings, requestFilter, resourceHandler, text);
 			var lifeSpanHandler = new LifeSpanHandler();
 			lifeSpanHandler.PopupRequested += LifeSpanHandler_PopupRequested;
+
+			InitializeRequestFilter(requestFilter);
 
 			browser = new ChromiumWebBrowser(startUrl)
 			{
@@ -114,6 +123,44 @@ namespace Chrominimum
 			browser.RequestHandler = requestHandler;
 
 			Controls.Add(browser);
+		}
+
+		private void AppendFilters(IRequestFilter requestFilter, dynamic filters, FilterRuleType type, FilterResult result)
+		{
+			if (Object.ReferenceEquals(null, filters))
+			{
+				return;
+			}
+
+			var factory = new RuleFactory();
+			foreach (var item in filters)
+			{
+				// workaround: json parser is not happy about '\.' so \ is esacaped and we should restore it back here
+				var re = ((string)item).Replace(@"\\", @"\");
+				var rule = factory.CreateRule(type);
+				rule.Initialize(new FilterRuleSettings { Expression = re, Result = result });
+				requestFilter.Load(rule);
+			}
+		}
+
+		private void InitializeRequestFilter(IRequestFilter requestFilter)
+		{
+			var factory = new RuleFactory();
+
+			if (!String.IsNullOrEmpty(appSettings.FiltersJsonLine))
+			{
+				dynamic filters = JObject.Parse(appSettings.FiltersJsonLine);
+				AppendFilters(requestFilter, filters["allow"], FilterRuleType.Regex, FilterResult.Allow);
+				AppendFilters(requestFilter, filters["block"], FilterRuleType.Regex, FilterResult.Block);
+			}
+
+			if (requestFilter.Process(new Request { Url = startUrl }) != FilterResult.Allow)
+			{
+				var rule = factory.CreateRule(FilterRuleType.Simplified);
+				rule.Initialize(new FilterRuleSettings { Expression = startUrl, Result = FilterResult.Allow });
+				requestFilter.Load(rule);
+				logger.Debug($"Automatically created filter rule to allow start URL '{startUrl}'.");
+			}
 		}
 
 		private void InitializeMenu()
