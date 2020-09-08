@@ -15,6 +15,7 @@ namespace SafeExamBrowser.Browser.Pages
 	internal class HtmlLoader
 	{
 		private IText text;
+		private const string pagesPrefix = "Chrominimum.Pages";
 
 		internal HtmlLoader(IText text)
 		{
@@ -24,7 +25,7 @@ namespace SafeExamBrowser.Browser.Pages
 		internal string LoadBlockedContent()
 		{
 			var assembly = Assembly.GetAssembly(typeof(HtmlLoader));
-			var path = $"{typeof(HtmlLoader).Namespace}.BlockedContent.html";
+			var path = $"{pagesPrefix}.BlockedContent.html";
 
 			using (var stream = assembly.GetManifestResourceStream(path))
 			using (var reader = new StreamReader(stream))
@@ -40,7 +41,7 @@ namespace SafeExamBrowser.Browser.Pages
 		internal string LoadBlockedPage()
 		{
 			var assembly = Assembly.GetAssembly(typeof(HtmlLoader));
-			var path = $"{typeof(HtmlLoader).Namespace}.BlockedPage.html";
+			var path = $"{pagesPrefix}.BlockedPage.html";
 
 			using (var stream = assembly.GetManifestResourceStream(path))
 			using (var reader = new StreamReader(stream))
@@ -58,7 +59,7 @@ namespace SafeExamBrowser.Browser.Pages
 		internal string LoadErrorPage()
 		{
 			var assembly = Assembly.GetAssembly(typeof(HtmlLoader));
-			var path = $"{typeof(HtmlLoader).Namespace}.LoadError.html";
+			var path = $"{pagesPrefix}.LoadError.html";
 
 			using (var stream = assembly.GetManifestResourceStream(path))
 			using (var reader = new StreamReader(stream))

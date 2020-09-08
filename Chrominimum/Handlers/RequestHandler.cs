@@ -13,7 +13,9 @@ using Chrominimum.Events;
 using SafeExamBrowser.I18n.Contracts;
 using SafeExamBrowser.Logging.Contracts;
 using SafeExamBrowser.Settings.Browser.Filter;
+using SafeExamBrowser.Browser.Contracts.Filters;
 using BrowserSettings = SafeExamBrowser.Settings.Browser.BrowserSettings;
+using Request = SafeExamBrowser.Browser.Contracts.Filters.Request;
 
 namespace Chrominimum.Handlers
 {
@@ -23,6 +25,7 @@ namespace Chrominimum.Handlers
 		private string quitUrlPattern;
 		private ResourceHandler resourceHandler;
 		private BrowserSettings settings;
+		private IRequestFilter filter;
 
 		internal event UrlEventHandler QuitUrlVisited;
 		internal event UrlEventHandler RequestBlocked;
@@ -30,11 +33,13 @@ namespace Chrominimum.Handlers
 		internal RequestHandler(
 			ILogger logger,
 			BrowserSettings settings,
+			IRequestFilter filter,
 			ResourceHandler resourceHandler,
 			IText text)
 		{
 			this.logger = logger;
 			this.settings = settings;
+			this.filter = filter;
 			this.resourceHandler = resourceHandler;
 		}
 
@@ -105,9 +110,31 @@ namespace Chrominimum.Handlers
 			return isQuitUrl;
 		}
 
+		private bool ProcessSingleRequest(IRequest request, string caption)
+		{
+			var result = filter.Process(new Request { Url = request.Url });
+			if (result == FilterResult.Block)
+			{
+				logger.Info($"Blocked {caption} request for '{request.Url}' ({request.ResourceType}, {request.TransitionType}).");
+				return true;
+			}
+			return false;
+		}
+
 		private bool Block(IRequest request)
 		{
 			var block = false;
+
+			if (request.ResourceType == ResourceType.MainFrame)
+			{
+				block = ProcessSingleRequest(request, "main");
+			}
+
+			if (request.ResourceType != ResourceType.MainFrame)
+			{
+				block = ProcessSingleRequest(request, "content");
+			}
+
 			return block;
 		}
 	}
