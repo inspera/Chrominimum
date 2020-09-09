@@ -89,6 +89,7 @@
     <Compile Include="Events\InstanceTerminatedEventHandler.cs" />
     <Compile Include="Events\PopupRequestedEventArgs.cs" />
     <Compile Include="Events\PopupRequestedEventHandler.cs" />
+    <Compile Include="Events\TerminationRequestedEventHandler.cs" />
     <Compile Include="Handlers\RequestHandler.cs" />
     <Compile Include="Handlers\ResourceHandler.cs" />
     <Compile Include="HashAlgorithm.cs" />
