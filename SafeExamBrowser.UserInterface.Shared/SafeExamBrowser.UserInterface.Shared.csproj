@@ -71,6 +71,7 @@
     <Compile Include="Activators\TouchActivator.cs" />
  -->
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Utilities\Clipboard.cs" />
     <Compile Include="Utilities\IconLoader.cs" />
     <Compile Include="Utilities\IconResourceLoader.cs" />
     <Compile Include="Utilities\Thumbnail.cs" />

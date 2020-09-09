@@ -22,7 +22,9 @@ using SafeExamBrowser.UserInterface.Contracts;
 using SafeExamBrowser.UserInterface.Contracts.Shell;
 using SafeExamBrowser.UserInterface.Desktop;
 using SafeExamBrowser.Settings.Logging;
+
 using SebMessageBox = SafeExamBrowser.UserInterface.Contracts.MessageBox;
+using SebUIUtilities = SafeExamBrowser.UserInterface.Shared.Utilities;
 
 using SafeExamBrowser.Settings.SystemComponents;
 using SafeExamBrowser.SystemComponents.Audio;
@@ -258,10 +260,12 @@ namespace Chrominimum
 			var appSettings = new AppSettings();
 			appSettings.Initialize();
 
+			SebUIUtilities.Clipboard.EmptyClipboard();
 			Application.EnableVisualStyles();
 			Application.SetCompatibleTextRenderingDefault(false);
 			Application.Run(new SEBContext(appSettings));
 			Cef.Shutdown();
+			SebUIUtilities.Clipboard.EmptyClipboard();
 		}
 	}
 }

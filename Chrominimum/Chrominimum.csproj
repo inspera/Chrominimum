@@ -193,6 +193,10 @@
       <Project>{ACEE2EF1-14D2-4B52-8994-5C053055BB51}</Project>
       <Name>SafeExamBrowser.SystemComponents</Name>
     </ProjectReference>
+    <ProjectReference Include="..\SafeExamBrowser.UserInterface.Shared\SafeExamBrowser.UserInterface.Shared.csproj">
+      <Project>{38525928-87ba-4f8c-8010-4eb97bfaae13}</Project>
+      <Name>SafeExamBrowser.UserInterface.Shared</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
