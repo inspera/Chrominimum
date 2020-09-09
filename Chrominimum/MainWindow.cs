@@ -10,6 +10,8 @@ using System;
 using System.Drawing;
 using System.Collections.Generic;
 using System.Windows.Forms;
+using System.Windows.Threading;
+using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using CefSharp;
 using CefSharp.WinForms;
@@ -27,7 +29,11 @@ using SafeExamBrowser.Browser.Contracts.Filters;
 using SafeExamBrowser.Settings.Browser.Filter;
 using SafeExamBrowser.Settings.Logging;
 using SafeExamBrowser.Applications.Contracts.Resources.Icons;
+using SafeExamBrowser.UserInterface.Contracts.Windows;
+using SafeExamBrowser.UserInterface.Contracts.Windows.Events;
+using SafeExamBrowser.UserInterface.Contracts.MessageBox;
 
+using SebMessageBox = SafeExamBrowser.UserInterface.Contracts.MessageBox;
 using ResourceHandler = Chrominimum.Handlers.ResourceHandler;
 using BrowserSettings = SafeExamBrowser.Settings.Browser.BrowserSettings;
 
@@ -36,30 +42,40 @@ using Request = SafeExamBrowser.Browser.Contracts.Filters.Request;
 
 namespace Chrominimum
 {
-	internal partial class MainWindow : Form
+	internal partial class MainWindow : Form, IWindow
 	{
 		private AppSettings appSettings;
 		private BrowserSettings settings;
 		private ChromiumWebBrowser browser;
 		private IModuleLogger logger;
 		private IText text;
+		private IMessageBox messageBox;
 
 		private string startUrl;
 		private bool mainInstance;
 
 		internal event PopupRequestedEventHandler PopupRequested;
+		internal event TerminationRequestedEventHandler TerminationRequested;
 		public event IconChangedEventHandler IconChanged;
 		public event TitleChangedEventHandler TitleChanged;
+		private WindowClosingEventHandler closing;
 
-		internal MainWindow(AppSettings appSettings, int id, bool mainInstance, string startUrl, IModuleLogger logger, IText text)
+		event WindowClosingEventHandler IWindow.Closing
+		{
+			add { closing += value; }
+			remove { closing -= value; }
+		}
+
+		internal MainWindow(AppSettings appSettings, BrowserSettings settings, IMessageBox messageBox, int id, bool mainInstance, string startUrl, IModuleLogger logger, IText text)
 		{
 			this.appSettings = appSettings;
+			this.messageBox = messageBox;
 			this.logger = logger;
 			this.startUrl = startUrl;
 			this.text = text;
 			this.Id = id;
 			this.mainInstance = mainInstance;
-			this.settings = new BrowserSettings();
+			this.settings = settings;
 
 			InitializeComponent();
 		}
@@ -103,6 +119,8 @@ namespace Chrominimum
 			var requestFilter = new RequestFilter();
 			var resourceHandler = new ResourceHandler(settings, requestFilter, logger, text);
 			var requestHandler = new RequestHandler(requestLogger, settings, requestFilter, resourceHandler, text);
+			requestHandler.QuitUrlVisited += RequestHandler_QuitUrlVisited;
+
 			var lifeSpanHandler = new LifeSpanHandler();
 			lifeSpanHandler.PopupRequested += LifeSpanHandler_PopupRequested;
 
@@ -119,7 +137,6 @@ namespace Chrominimum
 			browser.LoadError += Browser_LoadError;
 			browser.MenuHandler = new ContextMenuHandler();
 			browser.TitleChanged += Browser_TitleChanged;
-
 			browser.RequestHandler = requestHandler;
 
 			Controls.Add(browser);
@@ -256,6 +273,55 @@ namespace Chrominimum
 					logger.Info($"Blocked request to open new window for '{args.Url}'.");
 					break;
 			}
+		}
+
+		internal void Terminate()
+		{
+			if (browser.IsDisposed)
+			{
+				browser.LoadError -= Browser_LoadError;
+				browser.TitleChanged -= Browser_TitleChanged;
+				browser.Dispose();
+			}
+			TerminationRequested?.Invoke();
+		}
+		private void RequestHandler_QuitUrlVisited(string url)
+		{
+			if (settings.ConfirmQuitUrl)
+			{
+				var message = text.Get(TextKey.MessageBox_BrowserQuitUrlConfirmation);
+				var title = text.Get(TextKey.MessageBox_BrowserQuitUrlConfirmationTitle);
+				var result = messageBox.Show(message, title, MessageBoxAction.YesNo, SebMessageBox.MessageBoxIcon.Question, this);
+				var terminate = result == MessageBoxResult.Yes;
+
+				if (terminate)
+				{
+					logger.Info($"User confirmed termination via quit URL '{url}', forwarding request...");
+					Terminate();
+				}
+				else
+				{
+					logger.Info($"User aborted termination via quit URL '{url}'.");
+				}
+			}
+			else
+			{
+				logger.Info($"Automatically requesting termination due to quit URL '{url}'...");
+				Terminate();
+			}
+		}
+
+		public void BringToForeground()
+		{
+			Dispatcher.CurrentDispatcher.Invoke(() =>
+			{
+				if (WindowState == FormWindowState.Maximized)
+				{
+					WindowState = FormWindowState.Normal;
+				}
+
+				Activate();
+			});
 		}
 
 	}

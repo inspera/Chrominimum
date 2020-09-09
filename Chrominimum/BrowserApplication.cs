@@ -3,6 +3,7 @@ using System.Linq;
 using System.Drawing;
 using System.Collections.Generic;
 using System.Windows.Forms;
+using System.Windows.Threading;
 using System.Text.RegularExpressions;
 
 using CefSharp;
@@ -18,11 +19,13 @@ using SafeExamBrowser.Logging.Contracts;
 using SafeExamBrowser.Settings.Browser;
 using SafeExamBrowser.Settings.Logging;
 using SafeExamBrowser.Applications.Contracts.Resources.Icons;
+using SafeExamBrowser.UserInterface.Contracts.MessageBox;
 
 using ResourceHandler = Chrominimum.Handlers.ResourceHandler;
 using BrowserSettings = SafeExamBrowser.Settings.Browser.BrowserSettings;
 
 using Newtonsoft.Json.Linq;
+using System.Threading;
 
 namespace Chrominimum
 {
@@ -48,6 +51,7 @@ namespace Chrominimum
 		public string Tooltip { get; private set; }
 
 		public event WindowsChangedEventHandler WindowsChanged;
+		public event TerminationRequestedEventHandler TerminationRequested;
 
 		private List<BrowserApplicationInstance> instances;
 
@@ -55,13 +59,15 @@ namespace Chrominimum
 		private BrowserSettings settings;
 		private AppSettings appSettings;
 		private IText text;
+		private IMessageBox messageBox;
 		private int instanceIdCounter = default(int);
 
 		private List<Regex> sameWindowRxs;
 
-		internal BrowserApplication(AppSettings appSettings, bool mainInstance, IModuleLogger logger, IText text)
+		internal BrowserApplication(AppSettings appSettings, IMessageBox messageBox, bool mainInstance, IModuleLogger logger, IText text)
 		{
 			this.appSettings = appSettings;
+			this.messageBox = messageBox;
 			this.logger = logger;
 			this.text = text;
 			this.instances = new List<BrowserApplicationInstance>();
@@ -86,41 +92,9 @@ namespace Chrominimum
 		{
 			return new List<IApplicationWindow>(instances);
 		}
+
 		public void Initialize()
 		{
-			logger.Info("Starting initialization...");
-
-			var cefSettings = GenerateCefSettings();
-			var success = Cef.Initialize(cefSettings, true, default(IApp));
-
-			if (!success)
-			{
-				logger.Error("Failed to initialize browser!");
-				throw new Exception("Failed to initialize browser!");
-			}
-
-			logger.Info("Initialized browser.");
-		}
-
-		private CefSettings GenerateCefSettings()
-		{
-			var warning = logger.LogLevel == LogLevel.Warning;
-			var error = logger.LogLevel == LogLevel.Error;
-			var cefSettings = new CefSettings();
-
-			cefSettings.CefCommandLineArgs.Add("enable-media-stream");
-
-			cefSettings.LogFile = $"{appSettings.LogFilePrefix}_Browser.log";
-			cefSettings.LogSeverity = error ? LogSeverity.Error : (warning ? LogSeverity.Warning : LogSeverity.Info);
-			cefSettings.UserAgent = GenerateUserAgent();
-
-			logger.Debug($"UserAgent: {cefSettings.UserAgent}");
-			logger.Debug($"Cache Path: {cefSettings.CachePath}");
-			logger.Debug($"Engine Version: Chromium {Cef.ChromiumVersion}, CEF {Cef.CefVersion}, CefSharp {Cef.CefSharpVersion}");
-			logger.Debug($"Log File: {cefSettings.LogFile}");
-			logger.Debug($"Log Severity: {cefSettings.LogSeverity}.");
-
-			return cefSettings;
 		}
 
 		internal void CreateNewInstance(string url = null)
@@ -129,8 +103,9 @@ namespace Chrominimum
 			var isMainInstance = instances.Count == 0;
 			var instanceLogger = new ModuleLogger(logger, nameof(MainWindow));
 			var startUrl = url ?? appSettings.StartUrl;
-			var instance = new BrowserApplicationInstance(appSettings, id, isMainInstance, startUrl, instanceLogger, text);
+			var instance = new BrowserApplicationInstance(appSettings, messageBox, id, isMainInstance, startUrl, instanceLogger, text);
 			instance.PopupRequested += Instance_PopupRequested;
+			instance.TerminationRequested += Instance_TerminationRequested;
 			instance.Terminated += Instance_Terminated;
 
 			instance.Activate();
@@ -139,17 +114,10 @@ namespace Chrominimum
 			WindowsChanged?.Invoke();
 		}
 
-		private string GenerateUserAgent()
+		private void Instance_TerminationRequested()
 		{
-			var osVersion = $"{Environment.OSVersion.Version.Major}.{Environment.OSVersion.Version.Minor}; Win64; x64";
-			var userAgent = $"Mozilla/5.0 (Windows NT {osVersion}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{Cef.ChromiumVersion} Safari/537.36";
-
-			if (!string.IsNullOrWhiteSpace(appSettings.UserAgentSuffix))
-			{
-				userAgent = $"{userAgent} {appSettings.UserAgentSuffix}";
-			}
-
-			return userAgent;
+			logger.Info("Attempting to shutdown as requested by the browser...");
+			TerminationRequested?.Invoke();
 		}
 
 		public void Start()
@@ -163,12 +131,12 @@ namespace Chrominimum
 
 			foreach (var instance in instances)
 			{
+				instance.TerminationRequested += Instance_TerminationRequested;
 				instance.Terminated -= Instance_Terminated;
 				instance.Terminate();
 				logger.Info($"Terminated browser instance {instance.Id}.");
 			}
 
-			Cef.Shutdown();
 			logger.Info("Terminated browser.");
 		}
 		private void Instance_PopupRequested(PopupRequestedEventArgs args)

@@ -15,6 +15,7 @@ using SafeExamBrowser.Logging.Contracts;
 using SafeExamBrowser.Settings.Browser;
 using SafeExamBrowser.Settings.Logging;
 using SafeExamBrowser.Applications.Contracts.Resources.Icons;
+using SafeExamBrowser.UserInterface.Contracts.MessageBox;
 
 using ResourceHandler = Chrominimum.Handlers.ResourceHandler;
 using BrowserSettings = SafeExamBrowser.Settings.Browser.BrowserSettings;
@@ -24,15 +25,17 @@ namespace Chrominimum
 	class BrowserApplicationInstance : IApplicationWindow
 	{
 		private AppSettings appSettings;
+		private BrowserSettings settings;
 		private bool isMainInstance;
 		private IModuleLogger logger;
 		private string startUrl;
 		private IText text;
+		private IMessageBox messageBox;
 		private MainWindow window;
 
 		internal event PopupRequestedEventHandler PopupRequested;
 		internal event InstanceTerminatedEventHandler Terminated;
-		//internal event TerminationRequestedEventHandler TerminationRequested;
+		internal event TerminationRequestedEventHandler TerminationRequested;
 
 		public event IconChangedEventHandler IconChanged;
 		public event TitleChangedEventHandler TitleChanged;
@@ -44,6 +47,7 @@ namespace Chrominimum
 
 		public BrowserApplicationInstance(
 			AppSettings appSettings,
+			IMessageBox messageBox,
 			int id,
 			bool isMainInstance,
 			string startUrl,
@@ -51,14 +55,19 @@ namespace Chrominimum
 			IText text)
 		{
 			this.appSettings = appSettings;
+			this.messageBox = messageBox;
 			this.Id = id;
 			this.isMainInstance = isMainInstance;
 			this.logger = logger;
 			this.text = text;
 			this.startUrl = startUrl;
+			this.settings = new BrowserSettings();
+			settings.QuitUrl = appSettings.QuitUrl;
 
 			var instanceLogger = new ModuleLogger(logger, nameof(MainWindow));
-			window = new MainWindow(appSettings, id, isMainInstance, startUrl, instanceLogger, text);
+			window = new MainWindow(appSettings, settings, messageBox, id, isMainInstance, startUrl, instanceLogger, text);
+			window.TerminationRequested += () => TerminationRequested?.Invoke();
+			window.IconChanged += (i) => IconChanged?.Invoke(i);
 
 			Handle = window.Handle;
 			Icon = new BrowserIconResource();

@@ -10,6 +10,7 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Windows.Forms;
+using System.Threading;
 using CefSharp;
 using CefSharp.WinForms;
 
@@ -20,6 +21,7 @@ using SafeExamBrowser.Logging.Contracts;
 using SafeExamBrowser.UserInterface.Contracts;
 using SafeExamBrowser.UserInterface.Contracts.Shell;
 using SafeExamBrowser.UserInterface.Desktop;
+using SafeExamBrowser.Settings.Logging;
 using SebMessageBox = SafeExamBrowser.UserInterface.Contracts.MessageBox;
 
 using SafeExamBrowser.Settings.SystemComponents;
@@ -29,7 +31,7 @@ using SafeExamBrowser.SystemComponents.PowerSupply;
 using SafeExamBrowser.SystemComponents.WirelessNetwork;
 
 using Chrominimum.Events;
-
+using System.Windows.Threading;
 
 namespace Chrominimum
 {
@@ -47,6 +49,8 @@ namespace Chrominimum
 		private SebMessageBox.IMessageBox messageBox;
 		private HashAlgorithm hashAlgorithm;
 
+		private readonly Dispatcher _dispatcher;
+
 		internal SEBContext(AppSettings settings)
 		{
 			appSettings = settings;
@@ -55,6 +59,8 @@ namespace Chrominimum
 
 			InitializeLogging();
 			InitializeText();
+
+			_dispatcher = Dispatcher.CurrentDispatcher;
 
 			uiFactory = new UserInterfaceFactory(text);
 			messageBox = new MessageBoxFactory(text);
@@ -82,18 +88,52 @@ namespace Chrominimum
 			wirelessAdapter.Initialize();
 			taskbar.AddSystemControl(uiFactory.CreateWirelessNetworkControl(wirelessAdapter, Location.Taskbar));
 
-			browser = new BrowserApplication(appSettings, true, new ModuleLogger(logger, nameof(BrowserApplication)), text);
+			browser = new BrowserApplication(appSettings, messageBox, true, new ModuleLogger(logger, nameof(BrowserApplication)), text);
 			taskbar.AddApplicationControl(uiFactory.CreateApplicationControl(browser, Location.Taskbar), true);
+			browser.TerminationRequested += () =>
+			{
+				Browser_TerminationRequested();
+			};
 
 			taskview.Add(browser);
-			browser.Initialize();
+			InitializeCef();
 			browser.CreateNewInstance();
 		}
+
+		private void InitializeCef()
+		{
+			logger.Info("Starting initialization...");
+
+			var cefSettings = GenerateCefSettings();
+			var success = Cef.Initialize(cefSettings, true, default(IApp));
+
+			if (!success)
+			{
+				logger.Error("Failed to initialize browser!");
+				throw new Exception("Failed to initialize browser!");
+			}
+
+			logger.Info("Initialized browser.");
+		}
+
 
 		private void ClosingSeqence()
 		{
 			browser.Terminate();
 			ExitThread();
+		}
+
+		private void Browser_TerminationRequested()
+		{
+			if (!_dispatcher.CheckAccess())
+			{
+				_dispatcher.Invoke(() =>
+				{
+					ClosingSeqence();
+				});
+			} else {
+				ClosingSeqence();
+			}
 		}
 
 		private void Shell_QuitButtonClicked(System.ComponentModel.CancelEventArgs args)
@@ -177,6 +217,36 @@ namespace Chrominimum
 			text = new Text(new ModuleLogger(logger, nameof(Text)));
 			text.Initialize();
 		}
+		private CefSettings GenerateCefSettings()
+		{
+			var warning = logger.LogLevel == LogLevel.Warning;
+			var error = logger.LogLevel == LogLevel.Error;
+			var cefSettings = new CefSettings();
+
+			cefSettings.CefCommandLineArgs.Add("enable-media-stream");
+			cefSettings.LogFile = $"{appSettings.LogFilePrefix}_Browser.log";
+			cefSettings.LogSeverity = error ? LogSeverity.Error : (warning ? LogSeverity.Warning : LogSeverity.Info);
+			cefSettings.UserAgent = GenerateUserAgent();
+
+			logger.Debug($"UserAgent: {cefSettings.UserAgent}");
+			logger.Debug($"Cache Path: {cefSettings.CachePath}");
+			logger.Debug($"Engine Version: Chromium {Cef.ChromiumVersion}, CEF {Cef.CefVersion}, CefSharp {Cef.CefSharpVersion}");
+			logger.Debug($"Log File: {cefSettings.LogFile}");
+			logger.Debug($"Log Severity: {cefSettings.LogSeverity}.");
+
+			return cefSettings;
+		}
+
+		private string GenerateUserAgent()
+		{
+			var osVersion = $"{Environment.OSVersion.Version.Major}.{Environment.OSVersion.Version.Minor}; Win64; x64";
+			var userAgent = $"Mozilla/5.0 (Windows NT {osVersion}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{Cef.ChromiumVersion} Safari/537.36";
+			if (!string.IsNullOrWhiteSpace(appSettings.UserAgentSuffix))
+			{
+				userAgent = $"{userAgent} {appSettings.UserAgentSuffix}";
+			}
+			return userAgent;
+		}
 
 	}
 
@@ -191,6 +261,7 @@ namespace Chrominimum
 			Application.EnableVisualStyles();
 			Application.SetCompatibleTextRenderingDefault(false);
 			Application.Run(new SEBContext(appSettings));
+			Cef.Shutdown();
 		}
 	}
 }
