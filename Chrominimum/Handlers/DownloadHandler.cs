@@ -22,7 +22,6 @@ namespace Chrominimum.Handlers
 {
 	internal class DownloadHandler : IDownloadHandler
 	{
-		private AppSettings appSettings;
 		private BrowserSettings settings;
 		private ConcurrentDictionary<int, DownloadFinishedCallback> callbacks;
 		private ConcurrentDictionary<int, Guid> downloads;
@@ -31,9 +30,8 @@ namespace Chrominimum.Handlers
 		internal event DownloadRequestedEventHandler ConfigurationDownloadRequested;
 		internal event DownloadUpdatedEventHandler DownloadUpdated;
 
-		internal DownloadHandler(AppSettings appSettings, BrowserSettings settings, ILogger logger)
+		internal DownloadHandler(BrowserSettings settings, ILogger logger)
 		{
-			this.appSettings = appSettings;
 			this.callbacks = new ConcurrentDictionary<int, DownloadFinishedCallback>();
 			this.downloads = new ConcurrentDictionary<int, Guid>();
 			this.logger = logger;

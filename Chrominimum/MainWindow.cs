@@ -32,6 +32,7 @@ using SafeExamBrowser.Applications.Contracts.Resources.Icons;
 using SafeExamBrowser.UserInterface.Contracts.Windows;
 using SafeExamBrowser.UserInterface.Contracts.Windows.Events;
 using SafeExamBrowser.UserInterface.Contracts.MessageBox;
+using SafeExamBrowser.UserInterface.Contracts.Browser.Data;
 
 using SebMessageBox = SafeExamBrowser.UserInterface.Contracts.MessageBox;
 using ResourceHandler = Chrominimum.Handlers.ResourceHandler;
@@ -124,6 +125,10 @@ namespace Chrominimum
 			var lifeSpanHandler = new LifeSpanHandler();
 			lifeSpanHandler.PopupRequested += LifeSpanHandler_PopupRequested;
 
+			var downloadLogger = logger.CloneFor($"{nameof(DownloadHandler)} #{Id}");
+			var downloadHandler = new DownloadHandler(settings, downloadLogger);
+			downloadHandler.DownloadUpdated += DownloadHandler_DownloadUpdated;
+
 			InitializeRequestFilter(requestFilter);
 
 			browser = new ChromiumWebBrowser(startUrl)
@@ -138,6 +143,7 @@ namespace Chrominimum
 			browser.MenuHandler = new ContextMenuHandler();
 			browser.TitleChanged += Browser_TitleChanged;
 			browser.RequestHandler = requestHandler;
+			browser.DownloadHandler = downloadHandler;
 
 			Controls.Add(browser);
 		}
@@ -178,6 +184,11 @@ namespace Chrominimum
 				requestFilter.Load(rule);
 				logger.Debug($"Automatically created filter rule to allow start URL '{startUrl}'.");
 			}
+		}
+
+		private void DownloadHandler_DownloadUpdated(DownloadItemState state)
+		{
+			// No downloading UI requested.
 		}
 
 		private void InitializeMenu()
