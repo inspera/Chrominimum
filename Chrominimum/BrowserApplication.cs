@@ -76,15 +76,10 @@ namespace Chrominimum
 
 			this.WindowsChanged += Instance_WindowsChanged;
 
-			if (!String.IsNullOrEmpty(appSettings.FiltersJsonLine))
+			foreach (var item in appSettings.AllowedUrlRegexps)
 			{
-				dynamic filters = JObject.Parse(appSettings.FiltersJsonLine);
-				foreach (var item in filters["SingleInstanceURLs"])
-				{
-					// workaround: json parser is not happy about '\.' so \ is esacaped and we should restore it back here
-					Regex rx = new Regex(((string)item).Replace(@"\\", @"\"), RegexOptions.Compiled | RegexOptions.IgnoreCase);
-					this.sameWindowRxs.Add(rx);
-				}
+				Regex rx = new Regex(item, RegexOptions.Compiled | RegexOptions.IgnoreCase);
+				this.sameWindowRxs.Add(rx);
 			}
 		}
 
@@ -101,9 +96,10 @@ namespace Chrominimum
 		{
 			var id = ++instanceIdCounter;
 			var isMainInstance = instances.Count == 0;
+			var numWindows = instances.Count;
 			var instanceLogger = new ModuleLogger(logger, nameof(MainWindow));
 			var startUrl = url ?? appSettings.StartUrl;
-			var instance = new BrowserApplicationInstance(appSettings, messageBox, id, isMainInstance, startUrl, instanceLogger, text);
+			var instance = new BrowserApplicationInstance(appSettings, messageBox, id, isMainInstance, numWindows, startUrl, instanceLogger, text);
 			instance.PopupRequested += Instance_PopupRequested;
 			instance.TerminationRequested += Instance_TerminationRequested;
 			instance.Terminated += Instance_Terminated;

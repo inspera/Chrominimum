@@ -243,9 +243,9 @@ namespace Chrominimum
 		{
 			var osVersion = $"{Environment.OSVersion.Version.Major}.{Environment.OSVersion.Version.Minor}; Win64; x64";
 			var userAgent = $"Mozilla/5.0 (Windows NT {osVersion}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{Cef.ChromiumVersion} Safari/537.36";
-			if (!string.IsNullOrWhiteSpace(appSettings.UserAgentSuffix))
+			if (!string.IsNullOrWhiteSpace(appSettings.UserAgent))
 			{
-				userAgent = $"{userAgent} {appSettings.UserAgentSuffix}";
+				userAgent = $"{userAgent} {appSettings.UserAgent}";
 			}
 			return userAgent;
 		}
