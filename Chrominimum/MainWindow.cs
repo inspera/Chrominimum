@@ -40,6 +40,7 @@ using BrowserSettings = SafeExamBrowser.Settings.Browser.BrowserSettings;
 
 using Newtonsoft.Json.Linq;
 using Request = SafeExamBrowser.Browser.Contracts.Filters.Request;
+using System.Linq;
 
 namespace Chrominimum
 {
@@ -54,6 +55,7 @@ namespace Chrominimum
 
 		private string startUrl;
 		private bool mainInstance;
+		private int numWindows;
 
 		internal event PopupRequestedEventHandler PopupRequested;
 		internal event TerminationRequestedEventHandler TerminationRequested;
@@ -67,7 +69,7 @@ namespace Chrominimum
 			remove { closing -= value; }
 		}
 
-		internal MainWindow(AppSettings appSettings, BrowserSettings settings, IMessageBox messageBox, int id, bool mainInstance, string startUrl, IModuleLogger logger, IText text)
+		internal MainWindow(AppSettings appSettings, BrowserSettings settings, IMessageBox messageBox, int id, bool mainInstance, int numWindows, string startUrl, IModuleLogger logger, IText text)
 		{
 			this.appSettings = appSettings;
 			this.messageBox = messageBox;
@@ -76,6 +78,7 @@ namespace Chrominimum
 			this.text = text;
 			this.Id = id;
 			this.mainInstance = mainInstance;
+			this.numWindows = numWindows;
 			this.settings = settings;
 
 			InitializeComponent();
@@ -148,33 +151,15 @@ namespace Chrominimum
 			Controls.Add(browser);
 		}
 
-		private void AppendFilters(IRequestFilter requestFilter, dynamic filters, FilterRuleType type, FilterResult result)
-		{
-			if (Object.ReferenceEquals(null, filters))
-			{
-				return;
-			}
-
-			var factory = new RuleFactory();
-			foreach (var item in filters)
-			{
-				// workaround: json parser is not happy about '\.' so \ is esacaped and we should restore it back here
-				var re = ((string)item).Replace(@"\\", @"\");
-				var rule = factory.CreateRule(type);
-				rule.Initialize(new FilterRuleSettings { Expression = re, Result = result });
-				requestFilter.Load(rule);
-			}
-		}
-
 		private void InitializeRequestFilter(IRequestFilter requestFilter)
 		{
 			var factory = new RuleFactory();
 
-			if (!String.IsNullOrEmpty(appSettings.FiltersJsonLine))
+			foreach (var item in appSettings.AllowedUrlRegexps)
 			{
-				dynamic filters = JObject.Parse(appSettings.FiltersJsonLine);
-				AppendFilters(requestFilter, filters["allow"], FilterRuleType.Regex, FilterResult.Allow);
-				AppendFilters(requestFilter, filters["block"], FilterRuleType.Regex, FilterResult.Block);
+				var rule = factory.CreateRule(FilterRuleType.Regex);
+				rule.Initialize(new FilterRuleSettings { Expression = item, Result = FilterResult.Allow });
+				requestFilter.Load(rule);
 			}
 
 			if (requestFilter.Process(new Request { Url = startUrl }) != FilterResult.Allow)
@@ -224,18 +209,34 @@ namespace Chrominimum
 
 		private void InitializeWindow()
 		{
-			if (appSettings.ShowMaximized && mainInstance)
+			if (mainInstance)
+			{
+				InitializeWindowWithRect(appSettings.MainWindowGeometry);
+				return;
+			}
+			if (numWindows <= appSettings.NewWindowsGeometry.Count)
+			{
+				InitializeWindowWithRect(appSettings.NewWindowsGeometry[numWindows-1]);
+				return;
+			}
+			if (appSettings.NewWindowsGeometry.Count > 0)
+			{
+				InitializeWindowWithRect(appSettings.NewWindowsGeometry.Last());
+				return;
+			}
+			InitializeWindowWithRect(new RectangleF(new PointF(0.5F, 0.0F), new SizeF(0.5F, 1.0F)));
+		}
+
+		private void InitializeWindowWithRect(RectangleF rect)
+		{
+			Width = (int)(Screen.PrimaryScreen.WorkingArea.Width * rect.Width);
+			Height = (int)(Screen.PrimaryScreen.WorkingArea.Height * rect.Height);
+			Location = new Point(
+				(int)(Screen.PrimaryScreen.WorkingArea.Left + Screen.PrimaryScreen.WorkingArea.Width * rect.X),
+				(int)(Screen.PrimaryScreen.WorkingArea.Top + Screen.PrimaryScreen.WorkingArea.Height * rect.Y));
+			if (rect.Width == 1.0 && rect.Height == 1.0)
 			{
 				WindowState = FormWindowState.Maximized;
-			}
-			Height = Screen.PrimaryScreen.WorkingArea.Height;
-			Width = (int)(Screen.PrimaryScreen.WorkingArea.Width * (mainInstance ? appSettings.MainWindowWidth : appSettings.PopupWindowWidth) / 100.0);
-
-			var side = mainInstance ? appSettings.MainWindowSide : appSettings.PopupWindowSide;
-			Location = new Point(Screen.PrimaryScreen.WorkingArea.Left, Screen.PrimaryScreen.WorkingArea.Top);
-			if (side == "R")
-			{
-				Location = new Point(Screen.PrimaryScreen.WorkingArea.Right - Width);
 			}
 		}
 

@@ -50,6 +50,7 @@ namespace Chrominimum
 			IMessageBox messageBox,
 			int id,
 			bool isMainInstance,
+			int numWindows,
 			string startUrl,
 			IModuleLogger logger,
 			IText text)
@@ -67,7 +68,7 @@ namespace Chrominimum
 			settings.AllowDownloads = true;
 
 			var instanceLogger = new ModuleLogger(logger, nameof(MainWindow));
-			window = new MainWindow(appSettings, settings, messageBox, id, isMainInstance, startUrl, instanceLogger, text);
+			window = new MainWindow(appSettings, settings, messageBox, id, isMainInstance, numWindows, startUrl, instanceLogger, text);
 			window.TerminationRequested += () => TerminationRequested?.Invoke();
 			window.IconChanged += (i) => IconChanged?.Invoke(i);
 
