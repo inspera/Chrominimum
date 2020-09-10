@@ -63,6 +63,8 @@ namespace Chrominimum
 			this.startUrl = startUrl;
 			this.settings = new BrowserSettings();
 			settings.QuitUrl = appSettings.QuitUrl;
+			settings.DownloadDirectory = appSettings.DownloadDirectory;
+			settings.AllowDownloads = true;
 
 			var instanceLogger = new ModuleLogger(logger, nameof(MainWindow));
 			window = new MainWindow(appSettings, settings, messageBox, id, isMainInstance, startUrl, instanceLogger, text);

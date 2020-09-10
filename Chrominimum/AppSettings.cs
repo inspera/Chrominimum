@@ -45,6 +45,9 @@ namespace Chrominimum
 		[Option("quit-url", Required = false)]
 		public string QuitUrl { get; set; }
 
+		[Option("download-dir", Required = false)]
+		public string DownloadDirectory { get; set; }
+
 		[Value(0)]
 		public string ProgramName { get; set; }
 
@@ -70,6 +73,7 @@ namespace Chrominimum
 		internal string UserAgentSuffix { get; set; }
 		internal string LogFilePrefix { get; set; }
 		internal string FiltersJsonLine { get; set; }
+		internal string DownloadDirectory { get; set; }
 
 		internal const string AppName = "SEBLight";
 
@@ -103,13 +107,23 @@ namespace Chrominimum
 						}
 						FiltersJsonLine = File.ReadAllText(options.FiltersFileName);
 					}
+					DownloadDirectory = !String.IsNullOrEmpty(options.DownloadDirectory)
+						? options.DownloadDirectory
+						: GetTemporaryDirectory();
 				});
 
 			var args = Environment.GetCommandLineArgs();
 		}
 
+		public string GetTemporaryDirectory()
+		{
+			string tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+			Directory.CreateDirectory(tempDirectory);
+			return tempDirectory;
+		}
+
 		private void ParseLayout(string rawValue)
-        {
+		{
 			string[] blocks = rawValue.Split(':');
 			if (blocks.Length != 2)
 			{
