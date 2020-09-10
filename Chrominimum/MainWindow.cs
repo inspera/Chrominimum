@@ -161,6 +161,12 @@ namespace Chrominimum
 				rule.Initialize(new FilterRuleSettings { Expression = item, Result = FilterResult.Allow });
 				requestFilter.Load(rule);
 			}
+			foreach (var item in appSettings.AllowedUrls)
+			{
+				var rule = factory.CreateRule(FilterRuleType.Simplified);
+				rule.Initialize(new FilterRuleSettings { Expression = item, Result = FilterResult.Allow });
+				requestFilter.Load(rule);
+			}
 
 			if (requestFilter.Process(new Request { Url = startUrl }) != FilterResult.Allow)
 			{
