@@ -15,6 +15,7 @@ using System.Configuration;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json.Linq;
+using System.Security.Policy;
 
 namespace Chrominimum
 {
@@ -23,7 +24,7 @@ namespace Chrominimum
 		internal bool AllowReload { get; set; }
 		internal bool AllowNavigation { get; set; }
 		internal bool ShowMenu { get; set; }
-		internal string StartUrl { get; set; }
+		internal IList<string> StartUrls { get; set; }
 		internal string QuitUrl { get; set; }
 		internal string LogDir { get; set; }
 		internal DateTime StartTime { get; set; }
@@ -65,12 +66,18 @@ namespace Chrominimum
 			}
 			dynamic config = JObject.Parse(File.ReadAllText(configFileName));
 
-			StartUrl = config.startUrl;
-			QuitUrl = config.quitUrl;
-			if (!IsValidUrl(StartUrl))
+			StartUrls = new List<string>();
+			foreach (var item in config.startUrls)
 			{
-				throw new ArgumentException($"startUrl is not valid: {StartUrl}");
+				string startUrl = (string)item;
+				if (!IsValidUrl(startUrl))
+				{
+					throw new ArgumentException($"startUrl is not valid: {startUrl}");
+				}
+				StartUrls.Add(startUrl);
 			}
+
+			QuitUrl = config.quitUrl;
 			if (!IsValidUrl(QuitUrl))
 			{
 				throw new ArgumentException($"quitUrl is not valid: {QuitUrl}");

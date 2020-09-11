@@ -92,13 +92,12 @@ namespace Chrominimum
 		{
 		}
 
-		internal void CreateNewInstance(string url = null)
+		internal void CreateNewInstance(string startUrl = null)
 		{
 			var id = ++instanceIdCounter;
 			var isMainInstance = instances.Count == 0;
 			var numWindows = instances.Count;
 			var instanceLogger = new ModuleLogger(logger, nameof(MainWindow));
-			var startUrl = url ?? appSettings.StartUrl;
 			var instance = new BrowserApplicationInstance(appSettings, messageBox, id, isMainInstance, numWindows, startUrl, instanceLogger, text);
 			instance.PopupRequested += Instance_PopupRequested;
 			instance.TerminationRequested += Instance_TerminationRequested;
