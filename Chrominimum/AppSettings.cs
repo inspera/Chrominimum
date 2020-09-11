@@ -50,7 +50,6 @@ namespace Chrominimum
 			AllowNavigation = false;
 			AllowReload = false;
 
-			DownloadDirectory = GetTemporaryDirectory();
 			LogDir = Path.Combine(appDataLocalFolder, "Logs");
 			LogFilePrefix = Path.Combine(LogDir, StartTime.ToString("yyyy-MM-dd\\_HH\\hmm\\mss\\s"));
 
@@ -79,7 +78,12 @@ namespace Chrominimum
 
 			QuitPasswordHash = config.quitPasswordHash;
 			UserAgent = config.userAgent;
+
 			DownloadDirectory = config.downloadDir;
+			if (String.IsNullOrEmpty(DownloadDirectory))
+			{
+				DownloadDirectory = GetTemporaryDirectory();
+			}
 
 			AllowedUrls = new List<string>();
 			foreach (var item in config.allowedUrls)

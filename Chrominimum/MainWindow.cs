@@ -41,6 +41,7 @@ using BrowserSettings = SafeExamBrowser.Settings.Browser.BrowserSettings;
 using Newtonsoft.Json.Linq;
 using Request = SafeExamBrowser.Browser.Contracts.Filters.Request;
 using System.Linq;
+using MessageBoxIcon = SafeExamBrowser.UserInterface.Contracts.MessageBox.MessageBoxIcon;
 
 namespace Chrominimum
 {
@@ -132,6 +133,9 @@ namespace Chrominimum
 			var downloadHandler = new DownloadHandler(settings, downloadLogger);
 			downloadHandler.DownloadUpdated += DownloadHandler_DownloadUpdated;
 
+			var keyboardHandler = new KeyboardHandler();
+			keyboardHandler.ReloadRequested += ReloadRequested;
+
 			InitializeRequestFilter(requestFilter);
 
 			browser = new ChromiumWebBrowser(startUrl)
@@ -140,7 +144,7 @@ namespace Chrominimum
 			};
 
 			browser.DisplayHandler = new DisplayHandler(this);
-			browser.KeyboardHandler = new KeyboardHandler();
+			browser.KeyboardHandler = keyboardHandler;
 			browser.LifeSpanHandler = lifeSpanHandler;
 			browser.LoadError += Browser_LoadError;
 			browser.MenuHandler = new ContextMenuHandler();
@@ -342,5 +346,38 @@ namespace Chrominimum
 			});
 		}
 
+		private WindowSettings WindowSettings
+		{
+			get { return mainInstance ? settings.MainWindow : settings.AdditionalWindow; }
+		}
+
+		private void ReloadRequested()
+		{
+			if (WindowSettings.AllowReloading && WindowSettings.ShowReloadWarning)
+			{
+				var message = text.Get(TextKey.MessageBox_ReloadConfirmation);
+				var title = text.Get(TextKey.MessageBox_ReloadConfirmationTitle);
+				var result = messageBox.Show(message, title, MessageBoxAction.YesNo, MessageBoxIcon.Question, this);
+
+				if (result == MessageBoxResult.Yes)
+				{
+					logger.Debug("The user confirmed reloading the current page...");
+					browser.Reload();
+				}
+				else
+				{
+					logger.Debug("The user aborted reloading the current page.");
+				}
+			}
+			else if (WindowSettings.AllowReloading)
+			{
+				logger.Debug("Reloading current page...");
+				browser.Reload();
+			}
+			else
+			{
+				logger.Debug("Blocked reload attempt, as the user is not allowed to reload web pages.");
+			}
+		}
 	}
 }

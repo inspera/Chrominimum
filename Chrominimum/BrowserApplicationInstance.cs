@@ -66,6 +66,8 @@ namespace Chrominimum
 			settings.QuitUrl = appSettings.QuitUrl;
 			settings.DownloadDirectory = appSettings.DownloadDirectory;
 			settings.AllowDownloads = true;
+			settings.MainWindow.AllowReloading = appSettings.AllowReload;
+			settings.AdditionalWindow.AllowReloading = appSettings.AllowReload;
 
 			var instanceLogger = new ModuleLogger(logger, nameof(MainWindow));
 			window = new MainWindow(appSettings, settings, messageBox, id, isMainInstance, numWindows, startUrl, instanceLogger, text);

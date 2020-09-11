@@ -8,21 +8,17 @@
 
 using System.Windows.Forms;
 using CefSharp;
+using SafeExamBrowser.UserInterface.Contracts;
 
 namespace Chrominimum.Handlers
 {
 	internal class KeyboardHandler : IKeyboardHandler
 	{
+		public event ActionRequestedEventHandler ReloadRequested;
+
 		public bool OnKeyEvent(IWebBrowser webBrowser, IBrowser browser, KeyType type, int keyCode, int nativeKeyCode, CefEventFlags modifiers, bool isSystemKey)
 		{
 			var handled = false;
-
-			if (IsReloadShortcut(type, keyCode, modifiers))
-			{
-				webBrowser.Reload();
-				handled = true;
-			}
-
 			return handled;
 		}
 
@@ -31,6 +27,8 @@ namespace Chrominimum.Handlers
 			if (IsReloadShortcut(type, keyCode, modifiers))
 			{
 				isKeyboardShortcut = true;
+				ReloadRequested?.Invoke();
+				return true;
 			}
 
 			return false;
