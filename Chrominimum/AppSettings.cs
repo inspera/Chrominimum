@@ -29,17 +29,13 @@ namespace Chrominimum
 		internal string LogDir { get; set; }
 		internal DateTime StartTime { get; set; }
 		internal string QuitPasswordHash { get; set; }
-		internal int MainWindowWidth { get; set; }
-		internal string MainWindowSide { get; set; }
-		internal int PopupWindowWidth { get; set; }
-		internal string PopupWindowSide { get; set; }
 		internal string UserAgent { get; set; }
 		internal string LogFilePrefix { get; set; }
 		internal string DownloadDirectory { get; set; }
 		internal IList<string> AllowedUrls { get; set; }
 		internal IList<string> AllowedUrlRegexps { get; set; }
-		internal RectangleF MainWindowGeometry { get; set; }
-		internal IList<RectangleF> NewWindowsGeometry { get; set; }
+		internal IDictionary<string, RectangleF> UrlWindowsGeometry { get; set; }
+		internal IDictionary<string, RectangleF> UrlRegexpWindowsGeometry { get; set; }
 
 		internal const string AppName = "SEBLight";
 
@@ -93,24 +89,44 @@ namespace Chrominimum
 			}
 
 			AllowedUrls = new List<string>();
-			foreach (var item in config.allowedUrls)
+			var allowedUrls = config.allowedUrls;
+			if (allowedUrls != null)
 			{
-				AllowedUrls.Add(((string)item).Replace(@"\\", @"\"));
+				foreach (var item in config.allowedUrls)
+				{
+					AllowedUrls.Add(((string)item).Replace(@"\\", @"\"));
+				}
 			}
 			AllowedUrlRegexps = new List<string>();
-			foreach (var item in config.allowedUrlRegexps)
+			var allowedUrlRegexps = config.allowedUrlRegexps;
+			if (allowedUrlRegexps != null)
 			{
-				AllowedUrlRegexps.Add(((string)item).Replace(@"\\", @"\"));
+				foreach (var item in config.allowedUrlRegexps)
+				{
+					AllowedUrlRegexps.Add(((string)item).Replace(@"\\", @"\"));
+				}
 			}
 
-			MainWindowGeometry = ReadWindowGeometry(config.mainWindow);
-			NewWindowsGeometry = new List<RectangleF>();
-			foreach (var item in config.newWindows)
+			UrlWindowsGeometry = new Dictionary<string, RectangleF>();
+			var urlWindows = config.urlWindows;
+			if (urlWindows != null)
 			{
-				RectangleF rect = ReadWindowGeometry(item);
-				NewWindowsGeometry.Add(rect);
+				foreach (var item in config.urlWindows)
+				{
+					RectangleF rect = ReadWindowGeometry(item.Value);
+					UrlWindowsGeometry.Add((string)item.Name, rect);
+				}
 			}
-
+			UrlRegexpWindowsGeometry = new Dictionary<string, RectangleF>();
+			var urlRegexpWindows = config.urlRegexpWindows;
+			if (urlRegexpWindows != null)
+			{
+				foreach (var item in urlRegexpWindows)
+				{
+					RectangleF rect = ReadWindowGeometry(item.Value);
+					UrlRegexpWindowsGeometry.Add(((string)item.Name).Replace(@"\\", @"\"), rect);
+				}
+			}
 		}
 
 		public RectangleF ReadWindowGeometry(dynamic jsonObj)
