@@ -99,7 +99,10 @@ namespace Chrominimum
 
 			taskview.Add(browser);
 			InitializeCef();
-			browser.CreateNewInstance();
+			foreach(string startUrl in appSettings.StartUrls)
+			{
+				browser.CreateNewInstance(startUrl);
+			}
 		}
 
 		private void InitializeCef()

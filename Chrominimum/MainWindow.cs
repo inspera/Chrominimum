@@ -219,20 +219,18 @@ namespace Chrominimum
 
 		private void InitializeWindow()
 		{
-			if (mainInstance)
+			if (appSettings.UrlWindowsGeometry.ContainsKey(startUrl))
 			{
-				InitializeWindowWithRect(appSettings.MainWindowGeometry);
+				InitializeWindowWithRect(appSettings.UrlWindowsGeometry[startUrl]);
 				return;
 			}
-			if (numWindows <= appSettings.NewWindowsGeometry.Count)
+			foreach(string pattern in appSettings.UrlRegexpWindowsGeometry.Keys)
 			{
-				InitializeWindowWithRect(appSettings.NewWindowsGeometry[numWindows-1]);
-				return;
-			}
-			if (appSettings.NewWindowsGeometry.Count > 0)
-			{
-				InitializeWindowWithRect(appSettings.NewWindowsGeometry.Last());
-				return;
+				if (Regex.IsMatch(startUrl, pattern, RegexOptions.IgnoreCase))
+				{
+					InitializeWindowWithRect(appSettings.UrlRegexpWindowsGeometry[pattern]);
+					return;
+				}
 			}
 			InitializeWindowWithRect(new RectangleF(new PointF(0.5F, 0.0F), new SizeF(0.5F, 1.0F)));
 		}
