@@ -64,6 +64,8 @@ namespace Chrominimum
 
 		private List<Regex> sameWindowRxs;
 
+		private readonly Dispatcher _dispatcher;
+
 		internal BrowserApplication(AppSettings appSettings, IMessageBox messageBox, bool mainInstance, IModuleLogger logger, IText text)
 		{
 			this.appSettings = appSettings;
@@ -73,6 +75,8 @@ namespace Chrominimum
 			this.instances = new List<BrowserApplicationInstance>();
 			this.sameWindowRxs = new List<Regex>();
 			Icon = new BrowserIconResource();
+
+			_dispatcher = Dispatcher.CurrentDispatcher;
 
 			this.WindowsChanged += Instance_WindowsChanged;
 
@@ -93,6 +97,21 @@ namespace Chrominimum
 		}
 
 		internal void CreateNewInstance(string startUrl = null)
+		{
+			if (!_dispatcher.CheckAccess())
+			{
+				_dispatcher.Invoke(() =>
+				{
+					CreateNewInstanceInvoke(startUrl);
+				});
+			}
+			else
+			{
+				CreateNewInstanceInvoke(startUrl);
+			}
+		}
+
+		internal void CreateNewInstanceInvoke(string startUrl = null)
 		{
 			var id = ++instanceIdCounter;
 			var isMainInstance = instances.Count == 0;
