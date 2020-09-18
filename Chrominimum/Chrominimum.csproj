@@ -89,6 +89,9 @@
     <Compile Include="AppSettings.cs" />
     <Compile Include="BrowserApplication.cs" />
     <Compile Include="BrowserApplicationInstance.cs" />
+    <Compile Include="Constants\SPI.cs" />
+    <Compile Include="Constants\SPIF.cs" />
+    <Compile Include="WorkingAreaHandler.cs" />
     <Compile Include="Events\DownloadEventArgs.cs" />
     <Compile Include="Events\DownloadFinishedCallback.cs" />
     <Compile Include="Events\DownloadRequestedEventHandler.cs" />
