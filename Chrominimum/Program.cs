@@ -41,6 +41,7 @@ namespace Chrominimum
 	internal class SEBContext : ApplicationContext
 	{
 		private BrowserApplication browser;
+		private WorkingAreaHandler workingAreaHandler;
 		private ILogger logger;
 		private IText text;
 		private AppSettings appSettings;
@@ -70,6 +71,9 @@ namespace Chrominimum
 			taskbar = uiFactory.CreateTaskbar(logger);
 			taskbar.QuitButtonClicked += Shell_QuitButtonClicked;
 			taskbar.Show();
+
+			workingAreaHandler = new WorkingAreaHandler(new ModuleLogger(logger, nameof(WorkingAreaHandler)));
+			workingAreaHandler.InitializeWorkingArea(taskbar.GetAbsoluteHeight());
 
 			taskview = uiFactory.CreateTaskview();
 
@@ -124,6 +128,7 @@ namespace Chrominimum
 
 		private void ClosingSeqence()
 		{
+			workingAreaHandler.ResetWorkingArea();
 			browser.Terminate();
 			ExitThread();
 		}
